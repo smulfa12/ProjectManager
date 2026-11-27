@@ -46,7 +46,7 @@ function tabData(p) {
       <section class="card">
         <h3>Biaya</h3>
         ${dl([
-          [F.costType, badge(p.costType || 'Cost', p.costType === 'Free Mandays' ? 'teal' : 'gray')],
+          [F.costType, p.costType ? badge(p.costType, master.costTone(p.costType)) : ''],
           [F.mandays, md(p.mandays)],
           [F.priceTcv, rupiah(p.priceTcv)],
           [F.revenue, rupiah(p.revenue)],

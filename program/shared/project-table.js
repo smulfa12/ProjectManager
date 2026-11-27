@@ -27,7 +27,7 @@ export const COLUMNS = [
   { key: 'crNo', label: 'No CR Client' },
   { key: 'outstanding', label: 'Project Outstanding', html: (p) => `<span class="clamp">${esc(p.outstanding || '-')}</span>` },
   { key: 'date', label: 'Date', html: (p) => dateLabel(p.date) },
-  { key: 'costType', label: 'Cost/Free Mandays', html: (p) => badge(p.costType || 'Cost', p.costType === 'Free Mandays' ? 'teal' : 'gray') },
+  { key: 'costType', label: 'Cost/Free Mandays', html: (p) => (p.costType ? badge(p.costType, master.costTone(p.costType)) : '<span class="muted">-</span>') },
   { key: 'mandays', label: 'Mandays', num: true, html: (p) => number(p.mandays) },
   { key: 'priceTcv', label: 'Price TCV', num: true, html: (p) => rupiah(p.priceTcv) },
   { key: 'revenue', label: 'Revenue', num: true, html: (p) => rupiah(p.revenue) },

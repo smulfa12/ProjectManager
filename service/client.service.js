@@ -71,7 +71,7 @@ export function monitoring(client) {
   const inPeriod = active.filter((p) => inRange(p.date || p.createdAt?.slice(0, 10), range));
   const sum = (rows, f) => rows.reduce((s, p) => s + (Number(p[f]) || 0), 0);
   const free = inPeriod.filter((p) => p.costType === 'Free Mandays');
-  const billable = inPeriod.filter((p) => p.costType !== 'Free Mandays');
+  const billable = inPeriod.filter((p) => p.costType === 'Cost');
   const freeUsed = sum(free, 'mandays');
   const quota = Number(client.freeMandays) || 0;
   const t = today();

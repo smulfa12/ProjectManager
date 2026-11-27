@@ -37,7 +37,9 @@ export const reminder = () => ({ ...DEFAULTS['pm.reminder'], ...get('pm.reminder
 export const statusOf = (name) => statuses().find((s) => s.name === name) || { name: name || '-', tone: 'gray', closed: false };
 export const isClosed = (name) => statusOf(name).closed;
 
-export const COST_TYPES = ['Cost', 'Free Mandays'];
+export const COST_TYPES = ['Cost', 'Free Mandays', 'Waived'];
+/** Warna badge Cost/Free Mandays/Waived. */
+export const costTone = (t) => ({ Cost: 'blue', 'Free Mandays': 'teal', Waived: 'amber' })[t] || 'gray';
 
 export const ROLES = [
   { key: 'admin', label: 'Admin' },

@@ -43,7 +43,7 @@ export function openProjectForm({ id = '', preset = {}, onSaved } = {}) {
         <fieldset>
           <legend>Biaya</legend>
           <div class="form-grid">
-            ${field('Cost / Free Mandays', `<select class="input" name="costType">${options(master.COST_TYPES, p.costType)}</select>`)}
+            ${field('Cost / Free Mandays', `<select class="input" name="costType">${options(master.COST_TYPES, p.costType, { empty: '-' })}</select>`)}
             ${field('Mandays', `<input class="input num" name="mandays" type="number" min="0" step="0.5" value="${esc(p.mandays ?? '')}" />`)}
             ${field('Price TCV', money('priceTcv', p.priceTcv))}
             ${field('Revenue', money('revenue', p.revenue))}
@@ -85,7 +85,7 @@ export function openProjectForm({ id = '', preset = {}, onSaved } = {}) {
   const recalc = (fill) => {
     const r = projects.calculate({ clientId: form.clientId.value, mandays: form.mandays.value, costType: form.costType.value });
     hint.innerHTML = form.clientId.value
-      ? `<span class="muted small">Harga client ${rupiah(r.rate)}/MD · biaya internal ${rupiah(master.finance().costPerMandays)}/MD${form.costType.value === 'Free Mandays' ? ' · Free Mandays: tidak ditagihkan, memotong kuota free mandays client' : ''}</span>`
+      ? `<span class="muted small">Harga client ${rupiah(r.rate)}/MD · biaya internal ${rupiah(master.finance().costPerMandays)}/MD${form.costType.value === 'Free Mandays' ? ' · Free Mandays: tidak ditagihkan, memotong kuota free mandays client' : form.costType.value !== 'Cost' ? ' · tidak ditagihkan' : ''}</span>`
       : '';
     if (!fill) return;
     form.priceTcv.value = moneyValue(r.priceTcv);
