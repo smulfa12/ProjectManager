@@ -4,6 +4,7 @@
  */
 import * as clients from '../../service/client.service.js';
 import * as projects from '../../service/project.service.js';
+import * as sla from '../../service/sla.service.js';
 import * as master from '../../service/master.service.js';
 import { esc, badge } from '../../service/ui.service.js';
 import { number, rupiah, dateLabel, daysUntil } from '../../service/format.service.js';
@@ -16,6 +17,25 @@ export function jiraLink(p) {
     ? `<a class="jira-link" href="${esc(url)}" target="_blank" rel="noopener" title="Buka di Jira">${esc(p.jiraNo)} ↗</a>`
     : esc(p.jiraNo);
 }
+
+/** Warna prioritas PRL: urutan pertama paling merah. */
+export function priorityBadge(p) {
+  if (!p.priority) return '<span class="muted">-</span>';
+  const i = master.prlPriorities().indexOf(p.priority);
+  return badge(p.priority, ['red', 'amber', 'blue', 'gray'][Math.max(0, Math.min(i, 3))]);
+}
+
+/** Status SLA sementara (S) & permanen (P). */
+export function slaBadges(p) {
+  if (!sla.applies(p) || !p.slaTempDue) return '<span class="muted">-</span>';
+  const st = sla.status(p);
+  return `<span class="nowrap" title="Sementara: ${esc(st.temp.label)} · Permanen: ${esc(st.perm.label)}">${badge('S ' + st.temp.label, st.temp.tone)} ${badge('P ' + st.perm.label, st.perm.tone)}</span>`;
+}
+const slaText = (p) => {
+  if (!sla.applies(p) || !p.slaTempDue) return '';
+  const st = sla.status(p);
+  return `Sementara: ${st.temp.label} · Permanen: ${st.perm.label}`;
+};
 
 const statusBadge = (p) => badge(p.status || '-', master.statusOf(p.status).tone);
 
@@ -36,6 +56,8 @@ export const COLUMNS = [
   { key: 'picMlpt', label: 'PIC MLPT' },
   { key: 'target', nowrap: true, label: 'Target', html: targetCell },
   { key: 'status', label: 'Status', html: statusBadge },
+  { key: 'priority', label: 'Prioritas', html: priorityBadge },
+  { key: 'sla', label: 'SLA', value: slaText, html: slaBadges },
   { key: 'systemId', label: 'Project ID Sistem' },
   { key: 'module', label: 'Modul' },
   { key: 'crNo', label: 'No CR Client' },
@@ -52,7 +74,7 @@ export const COLUMNS = [
   { key: 'notes', label: 'Notes', html: (p) => `<span class="clamp">${esc(p.notes || '-')}</span>` },
 ];
 
-export const COMPACT = ['code', 'clientId', 'type', 'jiraNo', 'title', 'picMlpt', 'target', 'status', 'module', 'mandays', 'priceTcv'];
+export const COMPACT = ['code', 'clientId', 'type', 'jiraNo', 'title', 'picMlpt', 'target', 'status', 'priority', 'sla', 'module', 'mandays', 'priceTcv'];
 
 const colValue = (c, p) => (c.value ? c.value(p) : p[c.key]);
 const NO_COST_KEYS = ['costType', 'mandays', 'priceTcv', 'revenue', 'grossProfit', 'bast'];

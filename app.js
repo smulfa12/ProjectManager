@@ -29,12 +29,14 @@ import clientMonitoring from './program/client/client-monitoring.js';
 import clientDetail from './program/client/client-detail.js';
 // History Trend (grafik close per tahun)
 import trend from './program/trend/trend.js';
+// Laporan Excel
+import report from './program/report/report.js';
 // 6. Reminder email
 import reminder from './program/reminder/reminder.js';
 // 7. Setting
 import settings from './program/settings/settings.js';
 
-const MODULES = [login, dashboard, inquiry, projectList, projectDetail, meeting, activityBoard, clientMonitoring, clientDetail, trend, reminder, settings];
+const MODULES = [login, dashboard, inquiry, projectList, projectDetail, meeting, activityBoard, clientMonitoring, clientDetail, trend, report, reminder, settings];
 
 setupShell();
 

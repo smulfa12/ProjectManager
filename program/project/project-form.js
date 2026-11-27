@@ -7,11 +7,37 @@ import * as projects from '../../service/project.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import { esc, openModal, options, bindMoneyInput, moneyValue, toast, formData } from '../../service/ui.service.js';
-import { parseNumber, today, rupiah } from '../../service/format.service.js';
+import { parseNumber, today, rupiah, dateTimeLabel } from '../../service/format.service.js';
+import * as members from '../../service/member.service.js';
+import * as sla from '../../service/sla.service.js';
 
 const field = (label, html, cls = '') => `<label class="field ${cls}"><span>${label}</span>${html}</label>`;
 const text = (name, v, extra = '') => `<input class="input" name="${name}" value="${esc(v ?? '')}" ${extra} />`;
 const date = (name, v) => `<input class="input" type="date" name="${name}" value="${esc(v ?? '')}" />`;
+/** ISO → nilai input datetime-local (waktu lokal) & sebaliknya. */
+const toLocalInput = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const fromLocalInput = (v) => (v ? new Date(v).toISOString() : '');
+const dt = (name, v) => `<input class="input" type="datetime-local" name="${name}" value="${esc(toLocalInput(v))}" />`;
+
+/** Pilihan PIC Bank: PIC yang pernah dipakai di client ini + PIC client. */
+function picBankChoices(clientId) {
+  const list = projects.list().filter((x) => x.clientId === clientId).map((x) => x.picBank);
+  list.push(clients.get(clientId)?.pic);
+  return [...new Set(list.filter(Boolean).map((s) => s.trim()))].sort();
+}
+
+/** Pilihan PIC MLPT: member aktif yang meng-handle client ini (+ nilai lama bila tidak terdaftar). */
+function picMlptOptions(clientId, current) {
+  const list = members.list({ includeInactive: false }).filter((m) => (m.clientIds || []).includes(clientId)).map((m) => m.name);
+  const extra = current && !list.includes(current) ? [current] : [];
+  return options([...extra, ...list], current, { empty: clientId ? '— Pilih PIC MLPT —' : '— Pilih client dulu —' });
+}
+
 const money = (name, v) => `<input class="input num" name="${name}" inputmode="numeric" data-money value="${moneyValue(v)}" />`;
 
 /** Urutan tiket terakhir yang tampil di List Project / Inquiry (dipakai tombol Previous / Next). */
@@ -90,11 +116,26 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
           </div>
         </fieldset>
 
+        <fieldset class="sla-block">
+          <legend>🚨 Prioritas & SLA <span class="muted small" data-sla-type></span></legend>
+          <div class="form-grid">
+            ${field('Prioritas', `<select class="input" name="priority">${options(master.prlPriorities(), p.priority, { empty: '— Pilih prioritas —' })}</select>`)}
+            ${field('Waktu Lapor', dt('reportedAt', p.reportedAt))}
+            <div class="field span-2"><span>&nbsp;</span><p class="small muted" data-sla-rule></p></div>
+            <div class="field span-2 sla-box"><span>⏱️ Batas SLA Solusi Sementara</span><b data-due="temp">-</b></div>
+            ${field('Solusi Sementara selesai', dt('tempDoneAt', p.tempDoneAt), 'span-2')}
+            <div class="field span-2 sla-box"><span>⏱️ Batas SLA Solusi Permanen</span><b data-due="perm">-</b></div>
+            ${field('Solusi Permanen selesai', dt('permDoneAt', p.permDoneAt), 'span-2')}
+          </div>
+          <p class="muted small">Batas SLA dihitung dari Waktu Lapor + SLA client per prioritas (Monitoring Client → SLA PRL).
+            Timeline & reminder otomatis dibuat untuk kedua batas SLA; Target kosong diisi batas SLA permanen.</p>
+        </fieldset>
+
         <fieldset>
           <legend>PIC, Timeline & Status</legend>
           <div class="form-grid">
-            ${field('PIC Bank', text('picBank', p.picBank))}
-            ${field('PIC MLPT', text('picMlpt', p.picMlpt))}
+            ${field('PIC Bank', `<input class="input" name="picBank" list="pm-picbank" value="${esc(p.picBank || '')}" placeholder="Pilih atau ketik nama baru" /><datalist id="pm-picbank">${options(picBankChoices(p.clientId))}</datalist>`)}
+            ${field('PIC MLPT', `<select class="input" name="picMlpt">${picMlptOptions(p.clientId, p.picMlpt)}</select>`)}
             ${field('Status', `<select class="input" name="status">${options(master.statusNames(), p.status)}</select>`)}
             ${field('Start', date('startDate', p.startDate))}
             ${field('Target', date('target', p.target))}
@@ -137,12 +178,48 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
   };
   form.type.addEventListener('change', applyType);
   applyType();
+
+  // PIC Bank & PIC MLPT mengikuti client
+  form.clientId.addEventListener('change', () => {
+    form.querySelector('#pm-picbank').innerHTML = options(picBankChoices(form.clientId.value));
+    form.picMlpt.innerHTML = picMlptOptions(form.clientId.value, form.picMlpt.value);
+  });
+
+  // Prioritas & SLA (hanya tipe PRL / tipe ber-SLA)
+  const showSla = () => {
+    const on = master.usesSla(form.type.value);
+    form.classList.toggle('has-sla', on);
+    form.querySelector('[data-sla-type]').textContent = on ? `— tipe ${form.type.value}` : '';
+    if (!on) return;
+    const draft = { type: form.type.value, clientId: form.clientId.value, priority: form.priority.value, date: form.date.value, reportedAt: fromLocalInput(form.reportedAt.value) };
+    const d = sla.dues(draft);
+    const r = draft.priority && draft.clientId ? sla.rule(draft.clientId, draft.priority) : null;
+    form.querySelector('[data-sla-rule]').innerHTML = r
+      ? `SLA ${esc(clients.nameOf(draft.clientId))} · <b>${esc(draft.priority)}</b>: sementara <b>${sla.ruleLabel(r.temp)}</b>, permanen <b>${sla.ruleLabel(r.perm)}</b>`
+      : 'Pilih client & prioritas untuk menghitung SLA.';
+    ['temp', 'perm'].forEach((k) => {
+      const done = fromLocalInput(form[k === 'temp' ? 'tempDoneAt' : 'permDoneAt'].value);
+      const st = sla.state(d[k], done);
+      form.querySelector(`[data-due="${k}"]`).innerHTML = d[k] ? `${dateTimeLabel(d[k])} <span class="badge tone-${st.tone}">${esc(st.label)}</span>` : '-';
+    });
+  };
+  ['type', 'clientId', 'priority', 'reportedAt', 'date', 'tempDoneAt', 'permDoneAt'].forEach((n) => form[n].addEventListener('change', showSla));
+  showSla();
   form.date.addEventListener('change', () => !id && (form.code.placeholder = `Otomatis: ${projects.nextCode(form.date.value || today())}`));
 
   /** Simpan isian form. Mengembalikan project tersimpan, atau null bila gagal. */
   const save = async () => {
     const v = formData(form);
-    const input = { ...v, priceTcv: parseNumber(v.priceTcv), revenue: parseNumber(v.revenue), grossProfit: parseNumber(v.grossProfit), mandays: Number(v.mandays) || 0 };
+    const input = {
+      ...v,
+      priceTcv: parseNumber(v.priceTcv),
+      revenue: parseNumber(v.revenue),
+      grossProfit: parseNumber(v.grossProfit),
+      mandays: Number(v.mandays) || 0,
+      reportedAt: fromLocalInput(v.reportedAt),
+      tempDoneAt: fromLocalInput(v.tempDoneAt),
+      permDoneAt: fromLocalInput(v.permDoneAt),
+    };
     delete input._note;
     try {
       return await projects.save(id, input, v._note || '');

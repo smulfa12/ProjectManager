@@ -3,6 +3,7 @@
  * Tanggal dibuat relatif terhadap hari ini.
  */
 import * as store from './store.service.js';
+import * as sla from './sla.service.js';
 import { today, addDays } from './format.service.js';
 
 export async function loadDemo() {
@@ -59,6 +60,19 @@ export async function loadDemo() {
     A('a14', { projectId: 'p8', memberId: 'm4', title: 'Mapping field laporan OJK', planStart: d(-3), planEnd: d(2), actualStart: d(-2), status: 'todo', planHours: 16 }),
     A('a15', { projectId: '', memberId: 'm2', title: 'Code review mingguan', planStart: d(0), planEnd: d(0), planHours: 2, priority: 'low' }),
   ];
+  // PRL dengan prioritas & SLA (waktu lapor relatif terhadap sekarang)
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();
+  [
+    ['p9', 'c1', 'Critical', 'Saldo nasabah tidak update setelah EOD', 2, '', '', 'm2', 'Budi Santoso', 'On Progress'],
+    ['p10', 'c1', 'High', 'Gagal cetak buku tabungan', 30, hoursAgo(25), '', 'm2', 'Budi Santoso', 'On Progress'],
+    ['p11', 'c2', 'Medium', 'Notifikasi email terlambat', 200, hoursAgo(150), '', 'm5', 'Eka Wulandari', 'On Progress'],
+    ['p12', 'c3', 'Low', 'Typo label laporan harian', 600, hoursAgo(580), hoursAgo(300), 'm3', 'Citra Lestari', 'Done'],
+  ].forEach(([id, clientId, priority, title, ago, tempDone, permDone, mid, pic, status], i) => {
+    const reportedAt = hoursAgo(ago);
+    projects.push(P(id, { code: `PRL-000${i + 1}`, title, type: 'PRL', clientId, jiraNo: `BV-${5600 + i}`, module: 'Core Banking', date: reportedAt.slice(0, 10), status,
+      priority, reportedAt, tempDoneAt: tempDone, permDoneAt: permDone, picMlpt: pic, mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, costType: '', members: [{ memberId: mid, role: 'PIC MLPT', mandays: 0 }] }));
+  });
+
   // Riwayat tiket close 3 tahun terakhir (untuk menu History Trend)
   const y0 = Number(t.slice(0, 4));
   let seq = 0;
@@ -86,4 +100,10 @@ export async function loadDemo() {
   await store.bulkAdd('projects', projects);
   await store.bulkAdd('history', history);
   await store.bulkAdd('activities', activities);
+  // batas SLA & timeline otomatis untuk PRL contoh
+  for (const p of projects.filter((x) => x.priority)) {
+    const d = sla.dues(p);
+    const row = await store.update('projects', p.id, { slaTempDue: d.temp, slaPermDue: d.perm, target: d.perm.slice(0, 10) });
+    await sla.syncActivities(row);
+  }
 }

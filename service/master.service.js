@@ -20,6 +20,9 @@ export const DEFAULTS = {
   'pm.frequencies': ['Bulanan', 'Triwulan', 'Semester', 'Tahunan'],
   // tipe tiket yang tidak perlu Mandays, Price TCV, Revenue, Gross Profit & BAST
   'pm.noCostTypes': ['PRL'],
+  // prioritas tiket PRL (urut dari paling tinggi) & tipe yang memakai SLA
+  'pm.prlPriorities': ['Critical', 'High', 'Medium', 'Low'],
+  'pm.slaTypes': ['PRL'],
   // status yang boleh mengubah Target di Weekly Meeting
   'pm.targetStatuses': ['Requirement Gathering', 'Under Development', 'SIT In Progress'],
   'pm.finance': { costPerMandays: 1500000, codePrefix: 'PRJ' },
@@ -38,6 +41,10 @@ export const teams = () => get('pm.teams');
 export const frequencies = () => get('pm.frequencies');
 export const noCostTypes = () => get('pm.noCostTypes');
 export const targetStatuses = () => get('pm.targetStatuses');
+export const prlPriorities = () => get('pm.prlPriorities');
+export const slaTypes = () => get('pm.slaTypes');
+/** Tipe tiket yang memakai prioritas & SLA (default: PRL). */
+export const usesSla = (type) => Boolean(type) && slaTypes().some((t) => t.toLowerCase() === String(type).toLowerCase());
 /** Target boleh diubah di Weekly Meeting hanya untuk status ini. */
 export const canSetTarget = (status) => targetStatuses().some((s) => s.toLowerCase() === String(status || '').toLowerCase());
 /** Tipe tiket tanpa biaya & BAST (default: PRL). */

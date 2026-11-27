@@ -217,3 +217,9 @@ tr[data-open] { cursor: pointer; }
 .app-error { margin: 40px auto; max-width: 560px; padding: 18px 20px; border-radius: var(--radius); background: var(--red-bg); color: #7f1d1d; }
 .app-error p { margin: 6px 0 0; word-break: break-word; }
 .jira-link { white-space: nowrap; }
+
+/* Prioritas & SLA (hanya tipe PRL) */
+.sla-block { display: none; }
+.has-sla .sla-block { display: block; }
+.sla-box { background: var(--surface-2); border: 1px dashed var(--line-2); border-radius: var(--radius-sm); padding: 8px 10px; }
+.sla-box b { font-size: 13px; }
