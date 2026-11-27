@@ -156,3 +156,6 @@
 .minutes-text { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
 .meeting-search { flex: 1; min-width: 200px; }
 .meeting-search .input--sm { width: 100%; }
+.meeting-pic { width: 150px; min-width: 0; }
+.meeting-target { width: 140px; min-width: 0; }
+.meeting-target.is-late { color: var(--red); border-color: var(--red); }

@@ -6,7 +6,7 @@ import * as store from './store.service.js';
 import * as auth from './auth.service.js';
 import * as master from './master.service.js';
 import * as clients from './client.service.js';
-import { today } from './format.service.js';
+import { today, dateLabel } from './format.service.js';
 
 /** Label tiap field (dipakai form, tabel, export, & history). */
 export const FIELDS = {
@@ -83,6 +83,7 @@ function clean(input) {
 
 const show = (field, v) => {
   if (field === 'clientId') return clients.nameOf(v);
+  if (['date', 'startDate', 'target', 'endDate', 'bastDate'].includes(field) && v) return dateLabel(v);
   return v === '' || v == null ? '-' : String(v);
 };
 
