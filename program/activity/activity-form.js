@@ -14,7 +14,7 @@ export function openActivityForm({ id = '', preset = {}, onSaved } = {}) {
   const projectList = projects.list();
   const memberOpts = (projectId) => {
     const p = projects.get(projectId);
-    const list = p ? members.handlersOf(p.clientId) : members.list({ includeInactive: false });
+    const list = p ? members.handlersOf(p.clientId) : members.visible();
     // pastikan member yang sedang terpilih tetap ada di daftar
     const current = a.memberId && !list.some((m) => m.id === a.memberId) ? [members.get(a.memberId)].filter(Boolean) : [];
     return options([...list, ...current], a.memberId, { valueKey: 'id', labelKey: (m) => `${m.name}${m.team ? ' · ' + m.team : ''}`, empty: '— Belum di-assign —' });

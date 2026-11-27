@@ -43,6 +43,27 @@ function renderUser() {
   });
 }
 
+/** Banner saat admin memakai "Lihat sebagai" user lain. */
+function renderViewAs() {
+  let bar = document.querySelector('.viewas');
+  const v = auth.viewAsMember();
+  if (!v) return bar?.remove();
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'viewas';
+    document.querySelector('.main').prepend(bar);
+  }
+  const names = auth.allowedClientIds().map((id) => store.get('clients', id)?.code).filter(Boolean);
+  bar.innerHTML = `👁 Melihat sebagai <b>${esc(v.name)}</b> (${esc(auth.roleLabel())}) — data dibatasi client:
+    <b>${v.role === 'admin' ? 'semua' : esc(names.join(', ') || 'tidak ada')}</b>
+    <button class="btn btn--sm btn--ghost" data-exit-viewas>Kembali ke akun saya</button>`;
+  bar.querySelector('[data-exit-viewas]').onclick = () => {
+    auth.setViewAs(null);
+    location.hash = '#/settings?tab=users';
+    highlightNav('/settings');
+  };
+}
+
 /** Pasang sidebar sekali di awal. */
 export function setupShell() {
   const nav = document.querySelector('[data-nav]');
@@ -62,4 +83,5 @@ export function highlightNav(path) {
     a.classList.toggle('hidden', Boolean(item.admin) && !auth.isAdmin());
   });
   renderUser();
+  renderViewAs();
 }

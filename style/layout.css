@@ -48,3 +48,10 @@ body.auth-page .main, body.booting .main { margin-left: 0; }
   body.auth-page .topbar { display: none; }
   .app { padding: 16px; }
 }
+
+/* Banner "Lihat sebagai" */
+.viewas {
+  position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 28px; background: var(--amber-bg); color: #78350f; border-bottom: 1px solid #fcd34d; font-size: 13px;
+}
+.viewas .btn { margin-left: auto; }

@@ -21,18 +21,51 @@ let remoteCallback = () => {};
 export const needsLogin = () => store.mode() === 'cloud' && !user;
 export const currentUser = () => user;
 
-/** Data member milik user yang login (berdasarkan email). */
-export function currentMember() {
+/** Data member milik user yang benar-benar login (berdasarkan email). */
+function realMember() {
   if (!user) return null;
   const email = user.email.toLowerCase();
   return store.find('members', (m) => (m.email || '').toLowerCase() === email) || null;
 }
 
-export function isAdmin() {
+/** Admin sungguhan (bukan sedang "Lihat sebagai"). */
+export function isRealAdmin() {
   if (store.mode() === 'local') return true;
-  const me = currentMember();
+  const me = realMember();
   if (me) return me.role === 'admin' && me.active !== false;
   return adminRemote; // belum terdaftar sebagai member: ikuti database (setup awal)
+}
+
+/* ---------- "Lihat sebagai" (khusus admin, untuk mengecek akses user) ---------- */
+
+const VIEW_KEY = 'pm.viewAs';
+
+/** Member yang sedang "dilihat sebagai" oleh admin (null bila tidak aktif). */
+export function viewAsMember() {
+  if (!isRealAdmin()) return null;
+  let id = null;
+  try {
+    id = sessionStorage.getItem(VIEW_KEY);
+  } catch { /* abaikan */ }
+  return id ? store.get('members', id) : null;
+}
+
+export function setViewAs(memberId) {
+  try {
+    if (memberId) sessionStorage.setItem(VIEW_KEY, memberId);
+    else sessionStorage.removeItem(VIEW_KEY);
+  } catch { /* abaikan */ }
+}
+
+/** Member aktif untuk tampilan: member "lihat sebagai", atau user yang login. */
+export function currentMember() {
+  return viewAsMember() || realMember();
+}
+
+export function isAdmin() {
+  const v = viewAsMember();
+  if (v) return v.role === 'admin' && v.active !== false;
+  return isRealAdmin();
 }
 
 export const roleLabel = () => (isAdmin() ? 'Admin' : currentMember()?.role === 'pm' ? 'Project Manager' : 'Member');
@@ -40,7 +73,8 @@ export const roleLabel = () => (isAdmin() ? 'Admin' : currentMember()?.role === 
 /** Daftar id client yang boleh dilihat user ini. */
 export function allowedClientIds() {
   if (isAdmin()) return store.all('clients').map((c) => c.id);
-  return currentMember()?.clientIds || [];
+  const me = currentMember();
+  return me && me.active !== false ? me.clientIds || [] : [];
 }
 
 export const canClient = (clientId) => isAdmin() || allowedClientIds().includes(clientId);
@@ -84,6 +118,7 @@ export async function logout() {
   unsubscribeRealtime?.();
   unsubscribeRealtime = null;
   user = null;
+  setViewAs(null);
   localStorage.removeItem(USER_KEY);
   store.clearMemory();
 }

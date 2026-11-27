@@ -3,9 +3,22 @@
  * Login Supabase dicocokkan dengan member lewat email.
  */
 import * as store from './store.service.js';
+import * as auth from './auth.service.js';
 
 export const list = ({ includeInactive = true } = {}) =>
   store.filter('members', (m) => includeInactive || m.active !== false).sort((a, b) => a.name.localeCompare(b.name));
+
+/**
+ * Member yang boleh terlihat oleh user ini: admin → semua;
+ * selain admin → dirinya sendiri + member yang meng-handle client yang sama.
+ */
+export function visible({ includeInactive = false } = {}) {
+  const all = list({ includeInactive });
+  if (auth.isAdmin()) return all;
+  const allowed = new Set(auth.allowedClientIds());
+  const me = auth.currentMember();
+  return all.filter((m) => m.id === me?.id || (m.role !== 'admin' && (m.clientIds || []).some((c) => allowed.has(c))));
+}
 
 export const get = (id) => store.get('members', id);
 export const nameOf = (id) => get(id)?.name || 'Belum di-assign';

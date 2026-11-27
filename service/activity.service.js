@@ -9,9 +9,11 @@ import { today, workDays } from './format.service.js';
 /** Activity yang boleh dilihat: project-nya boleh diakses, atau activity internal. */
 export function list() {
   const allowed = new Set(auth.allowedClientIds());
+  const me = auth.currentMember();
   return store
     .filter('activities', (a) => {
-      if (!a.projectId) return true;
+      // activity internal (tanpa project): hanya admin & pemiliknya
+      if (!a.projectId) return auth.isAdmin() || (me && a.memberId === me.id);
       const p = store.get('projects', a.projectId);
       return p && allowed.has(p.clientId);
     })
