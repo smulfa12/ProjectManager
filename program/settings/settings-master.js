@@ -12,6 +12,7 @@ const LISTS = [
   ['pm.teams', '👥 Tim'],
   ['pm.frequencies', '🔁 Frekuensi Preventive Maintenance'],
   ['pm.noCostTypes', '🚫 Tipe tanpa Mandays / TCV / BAST (cth. PRL)'],
+  ['pm.targetStatuses', '🎯 Status yang boleh ubah Target (Weekly Meeting)'],
 ];
 
 export function renderMaster(el) {

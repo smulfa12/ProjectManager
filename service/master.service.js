@@ -20,6 +20,8 @@ export const DEFAULTS = {
   'pm.frequencies': ['Bulanan', 'Triwulan', 'Semester', 'Tahunan'],
   // tipe tiket yang tidak perlu Mandays, Price TCV, Revenue, Gross Profit & BAST
   'pm.noCostTypes': ['PRL'],
+  // status yang boleh mengubah Target di Weekly Meeting
+  'pm.targetStatuses': ['Requirement Gathering', 'Under Development', 'SIT In Progress'],
   'pm.finance': { costPerMandays: 1500000, codePrefix: 'PRJ' },
   'pm.links': { jiraUrl: 'https://bvhelpdesk.atlassian.net/servicedesk/customer/portal/2/' },
   'pm.reminder': { enabled: true, time: '07:30', cc: '', appUrl: '' },
@@ -35,6 +37,9 @@ export const modules = () => get('pm.modules');
 export const teams = () => get('pm.teams');
 export const frequencies = () => get('pm.frequencies');
 export const noCostTypes = () => get('pm.noCostTypes');
+export const targetStatuses = () => get('pm.targetStatuses');
+/** Target boleh diubah di Weekly Meeting hanya untuk status ini. */
+export const canSetTarget = (status) => targetStatuses().some((s) => s.toLowerCase() === String(status || '').toLowerCase());
 /** Tipe tiket tanpa biaya & BAST (default: PRL). */
 export const isNoCost = (type) => Boolean(type) && noCostTypes().some((t) => t.toLowerCase() === String(type).toLowerCase());
 export const finance = () => ({ ...DEFAULTS['pm.finance'], ...get('pm.finance') });

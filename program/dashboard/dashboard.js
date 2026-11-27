@@ -43,8 +43,8 @@ function render(el, state) {
     <div class="stats">
       ${statCard({ label: 'Total Project', value: number(s.count), hint: `${number(s.open)} open · <span class="text-red">${number(s.overdue)} lewat target</span>`, tone: 'blue', icon: '📁' })}
       ${statCard({ label: 'Total Mandays', value: md(s.mandays), hint: `Cost ${number(s.mandaysByCost.Cost)} · Free ${number(s.mandaysByCost['Free Mandays'])} · Waived ${number(s.mandaysByCost.Waived)}`, tone: 'purple', icon: '⏱️' })}
-      ${statCard({ label: 'Price TCV', value: rupiahShort(s.priceTcv), hint: `Revenue ${rupiahShort(s.revenue)}`, tone: 'teal', icon: '💼' })}
-      ${statCard({ label: 'Gross Profit', value: rupiahShort(s.grossProfit), hint: s.revenue ? `Margin ${pct((s.grossProfit / s.revenue) * 100)}` : '-', tone: s.grossProfit < 0 ? 'red' : 'green', icon: '📈' })}
+      ${statCard({ label: 'Price TCV', value: rupiahShort(s.priceTcv), hint: `Project ${rupiahShort(s.projectTcv)} · Maintenance ${rupiahShort(s.maintenance)}`, tone: 'teal', icon: '💼' })}
+      ${statCard({ label: 'Gross Profit', value: rupiahShort(s.grossProfit), hint: `${s.revenue ? `Margin ${pct((s.grossProfit / s.revenue) * 100)} · ` : ''}Project ${rupiahShort(s.projectGp)} · Maint. ${rupiahShort(s.maintenance)}`, tone: s.grossProfit < 0 ? 'red' : 'green', icon: '📈' })}
       ${statCard({ label: 'Activity Open', value: number(data.activities.open), hint: `${number(data.activities.today)} target hari ini · <span class="text-red">${number(data.activities.overdue)} terlambat</span>`, tone: 'amber', icon: '🗓️' })}
     </div>
 
@@ -52,7 +52,7 @@ function render(el, state) {
       <section class="card">
         <div class="card__head"><h2>🏦 Workload per Client</h2><span class="muted small">jumlah project · mandays</span></div>
         ${barList(
-          data.byClient.map((c) => ({
+          data.byClient.filter((c) => c.count).map((c) => ({
             label: c.label,
             sub: `${c.open} open · ${md(c.mandays)}`,
             value: c.count,
@@ -79,7 +79,7 @@ function render(el, state) {
       <div class="card__head"><h2>🧮 Matriks Client × Tipe Tiket</h2></div>
       <div class="table-wrap">
         <table class="table table--compact">
-          <thead><tr><th>Client</th>${data.types.map((t) => `<th class="num">${esc(t)}</th>`).join('')}<th class="num">Total</th><th class="num">Mandays</th><th class="num">Revenue</th><th class="num">Gross Profit</th></tr></thead>
+          <thead><tr><th>Client</th>${data.types.map((t) => `<th class="num">${esc(t)}</th>`).join('')}<th class="num">Total</th><th class="num">Mandays</th><th class="num">Revenue Project</th><th class="num">Maintenance Fee</th><th class="num">Total Revenue</th><th class="num">Gross Profit</th></tr></thead>
           <tbody>
             ${data.byClient
               .map((c, i) => `
@@ -89,7 +89,9 @@ function render(el, state) {
                 <td class="num"><b>${c.count}</b></td>
                 <td class="num">${number(c.mandays)}</td>
                 <td class="num">${rupiahShort(c.revenue)}</td>
-                <td class="num ${c.grossProfit < 0 ? 'text-red' : ''}">${rupiahShort(c.grossProfit)}</td>
+                <td class="num">${c.maintenance ? rupiahShort(c.maintenance) : '<span class="muted">·</span>'}</td>
+                <td class="num"><b>${rupiahShort(c.revenue + c.maintenance)}</b></td>
+                <td class="num ${c.grossProfit + c.maintenance < 0 ? 'text-red' : ''}">${rupiahShort(c.grossProfit + c.maintenance)}</td>
               </tr>`)
               .join('')}
           </tbody>
