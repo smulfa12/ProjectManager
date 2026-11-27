@@ -12,8 +12,8 @@ export async function loadDemo() {
   const row = (id, obj) => ({ id, createdAt: now, updatedAt: now, ...obj });
 
   const clients = [
-    row('c1', { code: 'BNU', name: 'Bank Nusa Utama', freeMandays: 40, contractDate: d(-300), pmStart: d(-300), pmEnd: d(65), pmFrequency: 'Triwulan', pricePerMandays: 4500000, pic: 'Ibu Ratna', notes: '', active: true }),
-    row('c2', { code: 'BAJ', name: 'Bank Arta Jaya', freeMandays: 25, contractDate: d(-120), pmStart: d(-120), pmEnd: d(245), pmFrequency: 'Bulanan', pricePerMandays: 5000000, pic: 'Bapak Hendra', notes: '', active: true }),
+    row('c1', { code: 'BNU', name: 'Bank Nusa Utama', freeMandays: 40, contractDate: d(-300), pmStart: d(-300), pmEnd: d(65), pmFrequency: 'Triwulan', contractEnd: d(65), maintenancePrice: 600000000, maintenanceTcv: 0, pricePerMandays: 4500000, pic: 'Ibu Ratna', notes: '', active: true }),
+    row('c2', { code: 'BAJ', name: 'Bank Arta Jaya', freeMandays: 25, contractDate: d(-120), pmStart: d(-120), pmEnd: d(245), pmFrequency: 'Bulanan', contractEnd: d(245 + 365), maintenancePrice: 450000000, maintenanceTcv: 900000000, pricePerMandays: 5000000, pic: 'Bapak Hendra', notes: '', active: true }),
     row('c3', { code: 'BPS', name: 'BPR Sentosa', freeMandays: 10, contractDate: d(-200), pmStart: d(-200), pmEnd: d(165), pmFrequency: 'Semester', pricePerMandays: 3500000, pic: 'Ibu Dewi', notes: '', active: true }),
   ];
   const members = [
@@ -59,6 +59,26 @@ export async function loadDemo() {
     A('a14', { projectId: 'p8', memberId: 'm4', title: 'Mapping field laporan OJK', planStart: d(-3), planEnd: d(2), actualStart: d(-2), status: 'todo', planHours: 16 }),
     A('a15', { projectId: '', memberId: 'm2', title: 'Code review mingguan', planStart: d(0), planEnd: d(0), planHours: 2, priority: 'low' }),
   ];
+  // Riwayat tiket close 3 tahun terakhir (untuk menu History Trend)
+  const y0 = Number(t.slice(0, 4));
+  let seq = 0;
+  [y0 - 3, y0 - 2, y0 - 1, y0].forEach((y, yi) => {
+    const nCr = [3, 5, 6, 4][yi];
+    const nPrl = [8, 6, 9, 5][yi];
+    for (let i = 0; i < nCr + nPrl; i++) {
+      const isCr = i < nCr;
+      const m = String((i * 5) % 12 + 1).padStart(2, '0');
+      const end = `${y}-${m}-${String((i % 27) + 1).padStart(2, '0')}`;
+      if (end > t) continue;
+      const md = isCr ? 5 + ((i * 7) % 15) : 0;
+      seq++;
+      projects.push(P(`hx${seq}`, {
+        code: `HIS-${String(seq).padStart(4, '0')}`, title: isCr ? `CR historis ${seq}` : `PRL historis ${seq}`, type: isCr ? 'CR' : 'PRL',
+        clientId: ['c1', 'c2', 'c3'][seq % 3], jiraNo: `BV-${4000 + seq}`, module: 'Core Banking', date: end, endDate: end, status: 'Done',
+        ...(isCr ? calc(md, 4500000) : { mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, costType: '' }),
+      }));
+    }
+  });
   const history = projects.map((p, i) => row('h' + i, { projectId: p.id, action: 'create', changes: [], note: 'Project dibuat (data contoh)', byEmail: 'demo' }));
 
   await store.bulkAdd('members', members);

@@ -185,7 +185,7 @@ export function applyRemote(evt) {
 function friendlyError(err) {
   const code = String(err?.code || '');
   if (code === '42501' || /row-level security/i.test(err?.message || '')) return new Error('Tidak punya akses untuk data ini (cek Setting → User & Client)');
-  if (['PGRST204', 'PGRST205', '42703', '42P01'].includes(code)) return new Error('Database belum siap: jalankan service/database/001_schema.sql di Supabase');
+  if (['PGRST204', 'PGRST205', '42703', '42P01'].includes(code)) return new Error('Database perlu diperbarui: jalankan file SQL terbaru di service/database/ (Supabase → SQL Editor)');
   if (code === '23505') return new Error('Data dengan kode yang sama sudah ada');
   if (code === '23503') return new Error('Data masih dipakai / terhubung dengan data lain');
   return err instanceof Error ? err : new Error(err?.message || String(err));

@@ -73,12 +73,13 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
           <legend>Biaya</legend>
           <div class="form-grid">
             ${field('Cost / Free Mandays', `<select class="input" name="costType">${options(master.COST_TYPES, p.costType, { empty: '-' })}</select>`)}
-            ${field('Mandays', `<input class="input num" name="mandays" type="number" min="0" step="0.5" value="${esc(p.mandays ?? '')}" />`)}
-            ${field('Price TCV', money('priceTcv', p.priceTcv))}
-            ${field('Revenue', money('revenue', p.revenue))}
-            ${field('Gross Profit', money('grossProfit', p.grossProfit))}
-            <div class="field span-3 calc-hint" data-calc-hint></div>
-            <div class="field"><button type="button" class="btn btn--ghost btn--sm" data-calc>↻ Hitung otomatis</button></div>
+            ${field('Mandays', `<input class="input num" name="mandays" type="number" min="0" step="0.5" value="${esc(p.mandays ?? '')}" />`, 'cost-field')}
+            ${field('Price TCV', money('priceTcv', p.priceTcv), 'cost-field')}
+            ${field('Revenue', money('revenue', p.revenue), 'cost-field')}
+            ${field('Gross Profit', money('grossProfit', p.grossProfit), 'cost-field')}
+            <div class="field span-3 calc-hint cost-field" data-calc-hint></div>
+            <div class="field cost-field"><button type="button" class="btn btn--ghost btn--sm" data-calc>↻ Hitung otomatis</button></div>
+            <p class="alert alert--info span-3 nocost-info">ℹ️ Tipe <b data-nocost-type></b> tidak memerlukan Mandays, Price TCV, Revenue, Gross Profit & BAST (otomatis dikosongkan).</p>
           </div>
         </fieldset>
 
@@ -91,8 +92,8 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
             ${field('Start', date('startDate', p.startDate))}
             ${field('Target', date('target', p.target))}
             ${field('Selesai Aktual', date('endDate', p.endDate))}
-            ${field('BAST (No / Status)', text('bast', p.bast))}
-            ${field('Tanggal BAST', date('bastDate', p.bastDate))}
+            ${field('BAST (No / Status)', text('bast', p.bast), 'bast-field')}
+            ${field('Tanggal BAST', date('bastDate', p.bastDate), 'bast-field')}
             ${field('Remark', text('remark', p.remark), 'span-2')}
             ${field('Notes', `<textarea class="input" name="notes" rows="2">${esc(p.notes || '')}</textarea>`, 'span-4')}
             ${id ? field('Catatan perubahan (masuk History)', text('_note', '', 'placeholder="opsional, cth. revisi target dari bank"'), 'span-4') : ''}
@@ -125,6 +126,14 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
   form.querySelector('[data-calc]').onclick = () => recalc(true);
   ['clientId', 'mandays', 'costType'].forEach((n) => form[n].addEventListener('change', () => recalc(true)));
   form.mandays.addEventListener('input', () => recalc(true));
+  // Validasi PRL: sembunyikan isian biaya & BAST
+  const applyType = () => {
+    const noCost = master.isNoCost(form.type.value);
+    form.classList.toggle('no-cost', noCost);
+    form.querySelector('[data-nocost-type]').textContent = form.type.value;
+  };
+  form.type.addEventListener('change', applyType);
+  applyType();
   form.date.addEventListener('change', () => !id && (form.code.placeholder = `Otomatis: ${projects.nextCode(form.date.value || today())}`));
 
   /** Simpan isian form. Mengembalikan project tersimpan, atau null bila gagal. */

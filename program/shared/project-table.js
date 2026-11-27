@@ -45,6 +45,10 @@ export const COLUMNS = [
 export const COMPACT = ['code', 'clientId', 'type', 'jiraNo', 'title', 'picMlpt', 'target', 'status', 'module', 'mandays', 'priceTcv'];
 
 const colValue = (c, p) => (c.value ? c.value(p) : p[c.key]);
+const NO_COST_KEYS = ['mandays', 'priceTcv', 'revenue', 'grossProfit', 'bast'];
+/** Isi sel; tipe tanpa biaya (PRL) tampil "-" untuk mandays, TCV, revenue, GP & BAST. */
+const cellHtml = (c, p) =>
+  NO_COST_KEYS.includes(c.key) && master.isNoCost(p.type) ? '<span class="muted">-</span>' : c.html ? c.html(p) : esc(colValue(c, p) || '-');
 
 export function sortRows(rows, key, dir = 1) {
   const col = COLUMNS.find((c) => c.key === key);
@@ -73,7 +77,7 @@ export function projectTable(rows, { keys = COMPACT, sortKey = '', sortDir = 1, 
             .map(
               (p) => `
             <tr data-row="${esc(p.id)}">
-              ${cols.map((c) => `<td class="${c.num ? 'num' : ''}${c.nowrap ? ' nowrap' : ''}">${c.html ? c.html(p) : esc(colValue(c, p) || '-')}</td>`).join('')}
+              ${cols.map((c) => `<td class="${c.num ? 'num' : ''}${c.nowrap ? ' nowrap' : ''}">${cellHtml(c, p)}</td>`).join('')}
               ${actions ? `<td class="actions">${actions(p)}</td>` : ''}
             </tr>`
             )

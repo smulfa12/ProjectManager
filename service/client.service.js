@@ -24,6 +24,9 @@ function clean(input) {
     name: String(input.name || '').trim(),
     freeMandays: Number(input.freeMandays) || 0,
     contractDate: input.contractDate || '',
+    contractEnd: input.contractEnd || '',
+    maintenancePrice: Number(input.maintenancePrice) || 0,
+    maintenanceTcv: Number(input.maintenanceTcv) || 0,
     pmStart: input.pmStart || '',
     pmEnd: input.pmEnd || '',
     pmFrequency: input.pmFrequency || '',
@@ -37,6 +40,7 @@ function clean(input) {
 export async function save(id, input) {
   const data = clean(input);
   if (!data.code || !data.name) throw new Error('Client ID & Nama Client wajib diisi');
+  if (data.contractDate && data.contractEnd && data.contractEnd < data.contractDate) throw new Error('Akhir kontrak tidak boleh sebelum tanggal kontrak');
   const dup = store.find('clients', (c) => c.code === data.code && c.id !== id);
   if (dup) throw new Error(`Client ID ${data.code} sudah dipakai ${dup.name}`);
   return id ? store.update('clients', id, data) : store.add('clients', data);

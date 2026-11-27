@@ -45,7 +45,8 @@ function tabData(p) {
       </section>
       <section class="card">
         <h3>Biaya</h3>
-        ${dl([
+        ${master.isNoCost(p.type) ? `<p class="muted small">Tipe ${esc(p.type)} tidak memerlukan Mandays, Price TCV, Revenue, Gross Profit & BAST.</p>` : ''}
+        ${master.isNoCost(p.type) ? '' : dl([
           [F.costType, p.costType ? badge(p.costType, master.costTone(p.costType)) : ''],
           [F.mandays, md(p.mandays)],
           [F.priceTcv, rupiah(p.priceTcv)],
