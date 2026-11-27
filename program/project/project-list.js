@@ -7,11 +7,12 @@ import * as projects from '../../service/project.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import * as auth from '../../service/auth.service.js';
-import { downloadCSV } from '../../service/export.service.js';
+import { downloadExcel } from '../../service/export.service.js';
 import { esc, pageHeader, options, emptyState, confirmDialog, attempt } from '../../service/ui.service.js';
 import { today } from '../../service/format.service.js';
-import { projectTable, bindSort, csvColumns, sortRows } from '../shared/project-table.js';
+import { projectTable, bindSort, exportColumns, sortRows } from '../shared/project-table.js';
 import { openProjectForm, rememberOrder } from './project-form.js';
+import { openProjectImport } from './project-import.js';
 
 const FILTER_KEY = 'pm.project.filter';
 
@@ -43,7 +44,7 @@ export default {
         title: 'List Project',
         subtitle: 'Data project, timeline, member assignment & history update',
         icon: '📁',
-        actions: `<button class="btn btn--ghost" data-export>⬇ Export</button><button class="btn btn--primary" data-new ${canCreate ? '' : 'disabled title="Belum ada client"'}>+ Project Baru</button>`,
+        actions: `<button class="btn btn--ghost" data-import ${canCreate ? '' : 'disabled'}>⬆ Import Excel</button><button class="btn btn--ghost" data-export>⬇ Export Excel</button><button class="btn btn--primary" data-new ${canCreate ? '' : 'disabled title="Belum ada client"'}>+ Project Baru</button>`,
       })}
       <div class="toolbar">
         <input class="input input--search" data-q placeholder="Cari project…" value="${esc(state.q)}" />
@@ -134,7 +135,10 @@ export default {
       );
     }
     el.querySelector('[data-new]').addEventListener('click', () => openProjectForm({ preset: { clientId: state.clientId }, onSaved: (p) => (location.hash = `#/project/detail?id=${p.id}`) }));
-    el.querySelector('[data-export]').addEventListener('click', () => downloadCSV(`list-project-${today()}.csv`, csvColumns(), rows));
+    el.querySelector('[data-import]').addEventListener('click', () => openProjectImport({ onDone: draw }));
+    el.querySelector('[data-export]').addEventListener('click', () =>
+      attempt(() => downloadExcel(`list-project-${today()}.xlsx`, 'List Project', exportColumns(), sortRows(rows, state.sortKey, state.sortDir)))
+    );
     draw();
   },
 };

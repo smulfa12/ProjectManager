@@ -133,3 +133,18 @@ export function bindSort(root, state, onSort) {
 
 /** Kolom untuk export CSV (nilai mentah). */
 export const csvColumns = () => COLUMNS.map((c) => ({ label: c.label, value: (p) => colValue(c, p) }));
+
+const DATE_KEYS = ['date', 'startDate', 'target', 'endDate', 'bastDate'];
+
+/**
+ * Kolom export Excel (juga format IMPORT): semua kolom tabel + field PRL/SLA.
+ * type: 'date' | 'datetime' → sel tanggal Excel.
+ */
+export const exportColumns = () => [
+  ...COLUMNS.map((c) => ({ key: c.key, label: c.label, type: DATE_KEYS.includes(c.key) ? 'date' : '', value: (p) => colValue(c, p) })),
+  { key: 'reportedAt', label: 'Waktu Lapor', type: 'datetime', value: (p) => p.reportedAt },
+  { key: 'tempDoneAt', label: 'Solusi Sementara Selesai', type: 'datetime', value: (p) => p.tempDoneAt },
+  { key: 'permDoneAt', label: 'Solusi Permanen Selesai', type: 'datetime', value: (p) => p.permDoneAt },
+  { key: 'slaTempDue', label: 'Batas SLA Sementara', type: 'datetime', value: (p) => p.slaTempDue },
+  { key: 'slaPermDue', label: 'Batas SLA Permanen', type: 'datetime', value: (p) => p.slaPermDue },
+];

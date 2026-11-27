@@ -186,3 +186,13 @@
 .fu-title { font-size: 13px; margin-top: 1px; }
 .fu-table td { vertical-align: top; }
 .fu-table .badge { margin: 0 2px 2px 0; }
+
+/* Detail client: PIC MLPT & PIC Bank berdampingan */
+.pic-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pic-cols__title { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+@media (max-width: 700px) { .pic-cols { grid-template-columns: 1fr; } }
+
+/* Import Excel */
+.import-drop { border: 2px dashed var(--line-2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; background: var(--surface-2); }
+.import-drop input[type=file] { margin: 6px 0 10px; }
+.import-table { max-height: 46vh; overflow: auto; }

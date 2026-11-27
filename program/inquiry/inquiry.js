@@ -5,10 +5,10 @@
 import * as projects from '../../service/project.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
-import { downloadCSV } from '../../service/export.service.js';
-import { esc, pageHeader, options, emptyState, statCard } from '../../service/ui.service.js';
+import { downloadExcel } from '../../service/export.service.js';
+import { esc, pageHeader, options, emptyState, statCard, attempt } from '../../service/ui.service.js';
 import { number, md, rupiahShort, today } from '../../service/format.service.js';
-import { projectTable, bindSort, csvColumns, COLUMNS, sortRows } from '../shared/project-table.js';
+import { projectTable, bindSort, exportColumns, COLUMNS, sortRows } from '../shared/project-table.js';
 import { rememberOrder } from '../project/project-form.js';
 
 const KEY = 'pm.inquiry';
@@ -54,7 +54,7 @@ export default {
     const moduleList = [...new Set([...master.modules(), ...projects.list().map((p) => p.module).filter(Boolean)])].sort();
 
     el.innerHTML = `
-      ${pageHeader({ title: 'Inquiry Project', subtitle: 'Cari & tampilkan data project dengan filter lengkap', icon: '🔎', actions: '<button class="btn btn--ghost" data-export>⬇ Export CSV</button>' })}
+      ${pageHeader({ title: 'Inquiry Project', subtitle: 'Cari & tampilkan data project dengan filter lengkap', icon: '🔎', actions: '<button class="btn btn--ghost" data-export>⬇ Export Excel</button>' })}
       <form class="card filter-card" data-filter>
         <div class="form-grid form-grid--6">
           <label class="field span-2"><span>Kata kunci</span><input class="input" name="q" value="${esc(f.q)}" placeholder="Uniq ID, Jira, CR, nama, PIC, remark…" /></label>
@@ -120,7 +120,9 @@ export default {
       form.querySelectorAll('select').forEach((s) => (s.value = ''));
       draw();
     });
-    el.querySelector('[data-export]').addEventListener('click', () => downloadCSV(`inquiry-project-${today()}.csv`, csvColumns(), rows));
+    el.querySelector('[data-export]').addEventListener('click', () =>
+      attempt(() => downloadExcel(`inquiry-project-${today()}.xlsx`, 'Inquiry Project', exportColumns(), sortRows(rows, view.sortKey, view.sortDir)))
+    );
     draw();
   },
 };

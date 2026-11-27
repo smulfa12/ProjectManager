@@ -1,6 +1,7 @@
 /**
- * Export Service — unduh data tabel sebagai CSV (dibuka di Excel).
+ * Export Service — unduh data tabel sebagai Excel (.xlsx) atau CSV.
  */
+import * as excel from './excel.service.js';
 export function toCSV(columns, rows) {
   const cell = (v) => {
     const s = String(v ?? '');
@@ -21,4 +22,21 @@ export function downloadCSV(filename, columns, rows) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Unduh sebagai Excel (.xlsx). columns = [{label, value(row), type?: 'date'|'datetime'}]
+ */
+export async function downloadExcel(filename, sheetName, columns, rows, opts = {}) {
+  const wb = await excel.workbook();
+  const data = rows.map((r) =>
+    Object.fromEntries(
+      columns.map((c) => {
+        const v = typeof c.value === 'function' ? c.value(r) : r[c.key];
+        return [c.label, c.type ? excel.toDate(v) : v ?? ''];
+      })
+    )
+  );
+  excel.addSheet(wb, sheetName, data, { columns: columns.map((c) => c.label), only: columns.map((c) => c.label), ...opts });
+  excel.download(wb, filename);
 }
