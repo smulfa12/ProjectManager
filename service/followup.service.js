@@ -7,14 +7,15 @@
  *   - lewat target / target ≤ 7 hari lagi
  *   - status menunggu pihak lain (Waiting / Submitted / Pending) → perlu FU ke bank
  *   - belum ada update ≥ 7 hari
- * Activity milik member yang sudah di To Do / In Progress / Review (BUKAN Backlog): terlambat / target hari ini.
+ * Activity milik member yang sudah di To Do / In Progress / Review (BUKAN Backlog) dengan target
+ *   terlambat, hari ini, atau hari kerja berikutnya.
  */
 import * as projects from './project.service.js';
 import * as activities from './activity.service.js';
 import * as clients from './client.service.js';
 import * as master from './master.service.js';
 import * as sla from './sla.service.js';
-import { today, diffDays } from './format.service.js';
+import { today, diffDays, dateLabel, addDays, nextWorkday, dayName } from './format.service.js';
 
 const STALE_DAYS = 7;
 const SOON_DAYS = 7;
@@ -67,17 +68,27 @@ export function forMember(m) {
         out.push({ kind: 'project', id: p.id, href: `#/project/detail?id=${p.id}&tab=history`, code: p.code, jira: p.jiraNo, target: p.target, title: p.title || p.outstanding || '-', client: clients.nameOf(p.clientId), status: p.status, reasons, severity: sev });
     });
 
+  // hari kerja berikutnya (Jumat → Senin)
+  const nextDay = nextWorkday(addDays(t, 1));
+  const nextLabel = diffDays(t, nextDay) === 1 ? 'besok' : `${dayName(nextDay)} ${dateLabel(nextDay)}`;
   activities
     .list()
     // hanya activity yang sudah masuk antrian kerja (bukan Backlog); SLA sudah tercakup di baris project
     .filter((a) => a.memberId === m.id && master.isActiveWork(a) && !a.id.startsWith('sla-'))
     .forEach((a) => {
-      if (!a.planEnd) return;
-      const d = diffDays(t, a.planEnd);
+      const d = a.planEnd ? diffDays(t, a.planEnd) : null;
       const p = projects.get(a.projectId);
       const base = { kind: 'activity', id: a.id, href: '#/activity?view=table', code: p?.code || 'Internal', jira: p?.jiraNo || '', target: a.planEnd, title: a.title, client: p ? clients.nameOf(p.clientId) : '-', status: master.activityStatus(a.status).label };
-      if (d < 0) out.push({ ...base, reasons: [{ text: `Activity terlambat ${-d} hari`, tone: 'red' }], severity: 1 });
-      else if (d === 0) out.push({ ...base, reasons: [{ text: 'Activity target hari ini', tone: 'amber' }], severity: 2 });
+      // hanya target yang sudah lewat, hari ini, atau hari kerja berikutnya
+      if (d === null || a.planEnd > nextDay) return;
+      const started = a.status !== 'todo';
+      const reasons = [];
+      let sev;
+      if (d < 0) (reasons.push({ text: `Activity terlambat ${-d} hari`, tone: 'red' }), (sev = 1));
+      else if (d === 0) (reasons.push({ text: 'Activity target hari ini', tone: 'amber' }), (sev = 2));
+      else (reasons.push({ text: `Activity target ${nextLabel}`, tone: 'blue' }), (sev = 3));
+      reasons.push({ text: started ? master.activityStatus(a.status).label : 'To Do — belum dimulai', tone: started ? 'teal' : 'gray' });
+      out.push({ ...base, reasons, severity: sev });
     });
 
   return out.sort((a, b) => a.severity - b.severity || a.client.localeCompare(b.client) || a.code.localeCompare(b.code));
