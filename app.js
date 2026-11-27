@@ -29,6 +29,8 @@ import clientMonitoring from './program/client/client-monitoring.js';
 import clientDetail from './program/client/client-detail.js';
 // Setting SLA per client (PRL)
 import slaSetting from './program/sla/sla-setting.js';
+// Setting SDLC (step CR & PRL)
+import sdlcSetting from './program/sdlc/sdlc-setting.js';
 // History Trend (grafik close per tahun)
 import trend from './program/trend/trend.js';
 // Laporan Excel
@@ -38,7 +40,7 @@ import reminder from './program/reminder/reminder.js';
 // 7. Setting
 import settings from './program/settings/settings.js';
 
-const MODULES = [login, dashboard, inquiry, projectList, projectDetail, meeting, activityBoard, clientMonitoring, clientDetail, slaSetting, trend, report, reminder, settings];
+const MODULES = [login, dashboard, inquiry, projectList, projectDetail, meeting, activityBoard, clientMonitoring, clientDetail, slaSetting, sdlcSetting, trend, report, reminder, settings];
 
 setupShell();
 

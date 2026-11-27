@@ -225,3 +225,4 @@ tr[data-open] { cursor: pointer; }
 .sla-box b { font-size: 13px; }
 .pic-table .input--sm { width: 100%; min-width: 0; }
 .pic-table { margin-bottom: 8px; }
+.chips.seg { padding-right: 10px; margin-right: 4px; border-right: 1px solid var(--line-2); }

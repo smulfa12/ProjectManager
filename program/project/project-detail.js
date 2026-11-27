@@ -11,6 +11,7 @@ import { rupiah, number, md, dateLabel, dateTimeLabel, daysUntil, diffDays, toda
 import { openProjectForm } from './project-form.js';
 import { jiraLink, priorityBadge } from '../shared/project-table.js';
 import * as sla from '../../service/sla.service.js';
+import * as sdlc from '../../service/sdlc.service.js';
 import { openActivityForm } from '../activity/activity-form.js';
 import { ganttChart, autoRange } from '../shared/gantt.js';
 
@@ -118,6 +119,45 @@ function milestones(p) {
     </div>`;
 }
 
+/** Kartu tahapan SDLC (CR / PRL) — stepper + tombol generate timeline. */
+function sdlcCard(p) {
+  const cat = sdlc.category(p);
+  const meta = sdlc.CATEGORIES.find((c) => c.key === cat);
+  const rows = sdlc.progress(p);
+  const has = rows.some((r) => r.activity);
+  const last = rows.filter((r) => r.activity).pop()?.activity;
+  const lateEnd = has && p.target && last?.planEnd > p.target;
+  const doneN = rows.filter((r) => r.done).length;
+  return `
+    <section class="card">
+      <div class="card__head">
+        <h3>${meta.icon} Tahapan SDLC ${esc(meta.label)} <span class="muted small">${has ? `${doneN}/${rows.length} step selesai` : `${rows.length} step`}</span></h3>
+        <div class="row gap-sm">
+          ${has
+            ? `<button class="btn btn--ghost btn--sm" data-sdlc="sync" title="Tambah step baru / sesuaikan nama step tanpa mengubah jadwal">↻ Sinkron step</button>
+               <button class="btn btn--ghost btn--sm" data-sdlc="reset" title="Hitung ulang semua tanggal rencana dari Start project">📅 Hitung ulang jadwal</button>`
+            : '<button class="btn btn--primary btn--sm" data-sdlc="create">⚙️ Buat timeline SDLC</button>'}
+        </div>
+      </div>
+      <ol class="sdlc-steps">
+        ${rows
+          .map((r) => {
+            const a = r.activity;
+            const st = r.done ? 'done' : r.late ? 'late' : r.current ? 'current' : a ? 'todo' : 'none';
+            return `<li class="sdlc-step is-${st}" ${a ? `data-open-step="${esc(a.id)}"` : ''} title="${esc(r.team ? 'Tim ' + r.team : '')}">
+              <span class="sdlc-step__no">${r.done ? '✓' : r.index}</span>
+              <b>${esc(r.name)}</b>
+              <small>${a ? `${dateLabel(a.planStart)} – ${dateLabel(a.planEnd)}` : `${r.days} hari kerja`}</small>
+              ${a ? `<small>${r.done ? 'Selesai' : `${a.progress || 0}% · ${esc(members.nameOf(a.memberId))}`}</small>` : ''}
+            </li>`;
+          })
+          .join('')}
+      </ol>
+      ${has ? '' : `<p class="muted small">Step diatur di menu Setting SDLC (berlaku umum). Timeline dibuat berurutan mulai ${p.startDate ? 'Start project' : cat === 'PRL' ? 'Waktu Lapor / Date' : 'Date project'}; tiap step jadi activity (Gantt, Kanban, reminder).</p>`}
+      ${lateEnd ? `<p class="alert alert--warn small">⚠️ Step terakhir selesai ${dateLabel(last.planEnd)}, melewati Target project ${dateLabel(p.target)}.</p>` : ''}
+    </section>`;
+}
+
 function tabTimeline(el, p, redraw) {
   const acts = activities.ofProject(p.id);
   const done = acts.filter((a) => a.status === 'done').length;
@@ -127,6 +167,7 @@ function tabTimeline(el, p, redraw) {
       <div class="card__head"><h3>Milestone Project</h3></div>
       ${milestones(p)}
     </section>
+    ${sdlcCard(p)}
     <section class="card">
       <div class="card__head">
         <h3>Activity (${acts.length}) · ${done} selesai</h3>
@@ -160,6 +201,18 @@ function tabTimeline(el, p, redraw) {
   };
   draw();
   el.querySelector('[data-zoom]').addEventListener('change', (e) => draw(e.target.value));
+  el.querySelectorAll('[data-sdlc]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const mode = b.dataset.sdlc;
+      if (mode === 'reset' && !(await confirmDialog('Hitung ulang semua tanggal rencana step SDLC dari Start project? Progress & realisasi tidak berubah.'))) return;
+      const res = await attempt(() => sdlc.generate(projects.get(p.id), { reset: mode === 'reset' }));
+      if (res) {
+        toast(`Timeline SDLC: ${res.created} dibuat, ${res.updated} diperbarui${res.removed ? `, ${res.removed} dihapus` : ''}`);
+        redraw();
+      }
+    })
+  );
+  el.querySelectorAll('[data-open-step]').forEach((li) => li.addEventListener('click', () => openActivityForm({ id: li.dataset.openStep, onSaved: redraw })));
   el.querySelector('[data-add]').addEventListener('click', () => openActivityForm({ preset: { projectId: p.id, planStart: p.startDate && p.startDate > today() ? p.startDate : today() }, onSaved: redraw }));
 }
 

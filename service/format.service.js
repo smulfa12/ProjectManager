@@ -63,6 +63,23 @@ export function diffDays(a, b) {
 /** Selisih hari dari hari ini ke tanggal (negatif = sudah lewat). */
 export const daysUntil = (iso) => (iso ? diffDays(today(), iso) : null);
 
+/** Hari kerja berikutnya bila tanggal jatuh di Sabtu/Minggu. */
+export function nextWorkday(iso) {
+  let d = iso;
+  while ([0, 6].includes(parseDate(d).getDay())) d = addDays(d, 1);
+  return d;
+}
+
+/** Tanggal selesai untuk n hari kerja mulai dari iso (iso dihitung hari ke-1). */
+export function addWorkdays(iso, n) {
+  let d = nextWorkday(iso);
+  for (let left = Math.max(1, Math.round(n)) - 1; left > 0; ) {
+    d = addDays(d, 1);
+    if (![0, 6].includes(parseDate(d).getDay())) left--;
+  }
+  return d;
+}
+
 /** Jumlah hari kerja (Senin–Jumat) dari a s/d b, inklusif. */
 export function workDays(a, b) {
   if (!a || !b || b < a) return 0;

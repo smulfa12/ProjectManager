@@ -196,3 +196,22 @@
 .import-drop { border: 2px dashed var(--line-2); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; background: var(--surface-2); }
 .import-drop input[type=file] { margin: 6px 0 10px; }
 .import-table { max-height: 46vh; overflow: auto; }
+
+/* Tahapan SDLC */
+.sdlc-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.sdlc-step { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); font-size: 13px; }
+.sdlc-step[data-open-step] { cursor: pointer; }
+.sdlc-step[data-open-step]:hover { border-color: var(--line-2); }
+.sdlc-step small { color: var(--muted); font-size: 11px; }
+.sdlc-step__no { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--gray-bg); color: var(--gray); margin-bottom: 2px; }
+.sdlc-step.is-done { background: var(--green-bg); border-color: #bbf7d0; }
+.sdlc-step.is-done .sdlc-step__no { background: var(--green); color: #fff; }
+.sdlc-step.is-current { background: var(--blue-bg); border-color: var(--blue); }
+.sdlc-step.is-current .sdlc-step__no { background: var(--blue); color: #fff; }
+.sdlc-step.is-late { background: var(--red-bg); border-color: #fecaca; }
+.sdlc-step.is-late .sdlc-step__no { background: var(--red); color: #fff; }
+.sdlc-step.is-none { opacity: 0.6; border-style: dashed; }
+.sdlc-table .input--sm { width: 100%; min-width: 0; }
+.sdlc-table td:nth-child(3) { width: 140px; }
+.sdlc-table td:nth-child(4) { width: 220px; }
+.sdlc-no { color: var(--muted); width: 24px; }
