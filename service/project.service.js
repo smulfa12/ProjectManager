@@ -137,7 +137,50 @@ export async function setMembers(id, members, note = '') {
   return row;
 }
 
-export const addNote = (id, note) => log(id, 'note', [], note);
+/* ---------- History update (catatan) ---------- */
+
+/** "2026-11-27" → "27/11/26" (format Remark seperti di tracker). */
+const shortDate = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`;
+
+/** Remark project = catatan terbaru, mis. "27/11/26 : Waiting UAT". */
+async function syncRemark(projectId) {
+  const latest = history(projectId).find((h) => h.action === 'note' && h.note);
+  if (!latest) return;
+  const remark = `${shortDate(latest.createdAt.slice(0, 10))} : ${latest.note}`;
+  if (get(projectId)?.remark !== remark) await store.update('projects', projectId, { remark });
+}
+
+/** Tanggal (YYYY-MM-DD) → timestamp jam 09:00 WIB; tanggal hari ini memakai jam sekarang. */
+const stamp = (date) => (!date || date === today() ? new Date().toISOString() : new Date(`${date}T09:00:00+07:00`).toISOString());
+
+/** Tambah catatan update. updateRemark = Remark project ikut diganti catatan terbaru. */
+export async function addNote(id, note, { date = '', updateRemark = true } = {}) {
+  const row = await store.add('history', { projectId: id, action: 'note', changes: [], note, byEmail: auth.currentUser()?.email || '', createdAt: stamp(date) });
+  if (updateRemark) await syncRemark(id);
+  return row;
+}
+
+/** Boleh edit / hapus history: admin, atau user yang menulis catatan itu. */
+export const canEditHistory = (h) => auth.isAdmin() || (h.byEmail && h.byEmail === auth.currentUser()?.email);
+
+export async function updateHistory(historyId, { note, date }) {
+  const h = store.get('history', historyId);
+  if (!h) throw new Error('History tidak ditemukan');
+  if (!canEditHistory(h)) throw new Error('Hanya admin / penulis catatan yang bisa mengubah');
+  if (!String(note || '').trim() && !(h.changes || []).length) throw new Error('Catatan tidak boleh kosong');
+  const patch = { note: String(note || '').trim() };
+  if (date && date !== h.createdAt.slice(0, 10)) patch.createdAt = new Date(`${date}T09:00:00+07:00`).toISOString();
+  await store.update('history', historyId, patch);
+  await syncRemark(h.projectId);
+}
+
+export async function removeHistory(historyId) {
+  const h = store.get('history', historyId);
+  if (!h) return;
+  if (!canEditHistory(h)) throw new Error('Hanya admin / penulis catatan yang bisa menghapus');
+  await store.remove('history', historyId);
+  await syncRemark(h.projectId);
+}
 
 export const history = (id) => store.filter('history', (h) => h.projectId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
@@ -157,6 +200,19 @@ export function summary(rows) {
     mandaysByCost: Object.fromEntries(['Cost', 'Free Mandays', 'Waived'].map((k) => [k, rows.filter((p) => p.costType === k).reduce((s, p) => s + (Number(p.mandays) || 0), 0)])),
   };
 }
+
+/** Jenis tiket dari No Jira: "BV" (BV-xxxx), "Channel", atau "Lainnya". */
+export function ticketKind(p) {
+  const j = String(p.jiraNo || '').trim();
+  if (/^BV[\s-]?\d/i.test(j)) return 'BV';
+  if (/channel/i.test(j)) return 'Channel';
+  return 'Lainnya';
+}
+export const TICKET_KINDS = [
+  { key: 'BV', label: 'Tiket BV-' },
+  { key: 'Channel', label: 'Channel' },
+  { key: 'Lainnya', label: 'Lainnya' },
+];
 
 /** Teks pencarian sederhana di semua field utama. */
 export function matches(p, q) {

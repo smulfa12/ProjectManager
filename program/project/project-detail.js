@@ -6,7 +6,7 @@ import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import * as activities from '../../service/activity.service.js';
 import * as members from '../../service/member.service.js';
-import { esc, pageHeader, tabs, bindTabs, badge, emptyState, options, toast, attempt, progressBar } from '../../service/ui.service.js';
+import { esc, pageHeader, tabs, bindTabs, badge, emptyState, options, toast, attempt, progressBar, openModal, confirmDialog } from '../../service/ui.service.js';
 import { rupiah, number, md, dateLabel, dateTimeLabel, daysUntil, diffDays, today } from '../../service/format.service.js';
 import { openProjectForm } from './project-form.js';
 import { openActivityForm } from '../activity/activity-form.js';
@@ -223,9 +223,13 @@ function tabHistory(el, p, redraw) {
   const list = projects.history(p.id);
   el.innerHTML = `
     <section class="card">
-      <form class="row gap-sm" data-note>
-        <input class="input grow" name="note" placeholder="Tulis update / catatan progress project…" required />
-        <button class="btn btn--primary">Tambah catatan</button>
+      <form class="form" data-note>
+        <div class="row gap-sm history-add">
+          <input class="input" type="date" name="date" value="${today()}" title="Tanggal update" />
+          <input class="input grow" name="note" placeholder="Tulis update / catatan progress project… (cth. Waiting UAT)" required />
+          <button class="btn btn--primary">Tambah update</button>
+        </div>
+        <label class="check small"><input type="checkbox" name="remark" checked /> Jadikan <b>Remark</b> project (update terbaru tampil di List Project)</label>
       </form>
     </section>
     <section class="card">
@@ -233,11 +237,18 @@ function tabHistory(el, p, redraw) {
         ${list
           .map((h) => {
             const [label, tone] = ACTION[h.action] || [h.action, 'gray'];
+            const editable = projects.canEditHistory(h);
             return `
             <li>
               <div class="history__dot tone-${tone}"></div>
               <div class="history__body">
-                <div class="history__meta">${badge(label, tone)} <b>${esc(h.byEmail || '-')}</b> <span class="muted">· ${dateTimeLabel(h.createdAt)}</span></div>
+                <div class="history__meta">
+                  ${badge(label, tone)} <b>${esc(h.byEmail || '-')}</b> <span class="muted">· ${dateTimeLabel(h.createdAt)}</span>
+                  ${editable ? `<span class="history__actions">
+                    <button class="btn btn--icon btn--ghost btn--sm" data-hedit="${esc(h.id)}" title="Edit">✏️</button>
+                    <button class="btn btn--icon btn--ghost btn--sm" data-hdel="${esc(h.id)}" title="Hapus">🗑️</button>
+                  </span>` : ''}
+                </div>
                 ${h.note ? `<p>${esc(h.note)}</p>` : ''}
                 ${(h.changes || []).length ? `<ul class="changes">${h.changes.map((c) => `<li><b>${esc(c.label)}</b>: <del>${esc(c.from)}</del> → <ins>${esc(c.to)}</ins></li>`).join('')}</ul>` : ''}
               </div>
@@ -246,12 +257,50 @@ function tabHistory(el, p, redraw) {
           .join('')}
       </ol>` : emptyState('🕘', 'Belum ada history')}
     </section>`;
+
   el.querySelector('[data-note]').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const note = e.target.note.value.trim();
+    const f = e.target;
+    const note = f.note.value.trim();
     if (!note) return;
-    if (await attempt(() => projects.addNote(p.id, note), 'Catatan ditambahkan')) redraw();
+    if (await attempt(() => projects.addNote(p.id, note, { date: f.date.value, updateRemark: f.remark.checked }).then(() => true), 'Update ditambahkan')) redraw();
   });
+
+  el.querySelectorAll('[data-hedit]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const h = list.find((x) => x.id === b.dataset.hedit);
+      const modal = openModal({
+        title: 'Edit History Update',
+        body: `
+          <form class="form" data-hform>
+            <label class="field"><span>Tanggal</span><input class="input" type="date" name="date" value="${h.createdAt.slice(0, 10)}" /></label>
+            <label class="field"><span>Catatan</span><textarea class="input" name="note" rows="4">${esc(h.note || '')}</textarea></label>
+            ${(h.changes || []).length ? '<p class="muted small">Rincian perubahan field (otomatis) tidak bisa diubah, hanya catatannya.</p>' : ''}
+            <div class="form-actions">
+              <button type="button" class="btn btn--ghost" data-cancel>Batal</button>
+              <button class="btn btn--primary">Simpan</button>
+            </div>
+          </form>`,
+      });
+      const form = modal.el.querySelector('[data-hform]');
+      form.querySelector('[data-cancel]').onclick = modal.close;
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const ok = await attempt(() => projects.updateHistory(h.id, { note: form.note.value, date: form.date.value }).then(() => true), 'History diperbarui');
+        if (ok) {
+          modal.close();
+          redraw();
+        }
+      });
+    })
+  );
+
+  el.querySelectorAll('[data-hdel]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      if (!(await confirmDialog('Hapus history update ini?', { okText: 'Hapus', danger: true }))) return;
+      if (await attempt(() => projects.removeHistory(b.dataset.hdel).then(() => true), 'History dihapus')) redraw();
+    })
+  );
 }
 
 /* ---------- Halaman ---------- */

@@ -121,3 +121,8 @@
 .matrix td, .matrix th { white-space: nowrap; }
 .steps { padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .calc-hint { justify-content: center; }
+
+.history-add { margin-bottom: 8px; }
+.history-add input[type='date'] { width: 160px; }
+.history__actions { margin-left: auto; display: inline-flex; gap: 2px; }
+.history__meta { width: 100%; }

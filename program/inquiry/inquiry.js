@@ -12,7 +12,7 @@ import { projectTable, bindSort, csvColumns, COLUMNS, sortRows } from '../shared
 import { rememberOrder } from '../project/project-form.js';
 
 const KEY = 'pm.inquiry';
-const EMPTY = { q: '', clientId: '', type: '', status: '', module: '', costType: '', pic: '', dateFrom: '', dateTo: '', targetFrom: '', targetTo: '', bast: '', flag: '' };
+const EMPTY = { q: '', clientId: '', type: '', ticket: '', status: '', module: '', costType: '', pic: '', dateFrom: '', dateTo: '', targetFrom: '', targetTo: '', bast: '', flag: '' };
 
 const loadFilter = () => {
   try {
@@ -28,6 +28,7 @@ function apply(f) {
     if (!projects.matches(p, f.q)) return false;
     if (f.clientId && p.clientId !== f.clientId) return false;
     if (f.type && p.type !== f.type) return false;
+    if (f.ticket && projects.ticketKind(p) !== f.ticket) return false;
     if (f.status === '_open' ? master.isClosed(p.status) : f.status && p.status !== f.status) return false;
     if (f.module && p.module !== f.module) return false;
     if (f.costType && p.costType !== f.costType) return false;
@@ -59,6 +60,7 @@ export default {
           <label class="field span-2"><span>Kata kunci</span><input class="input" name="q" value="${esc(f.q)}" placeholder="Uniq ID, Jira, CR, nama, PIC, remark…" /></label>
           <label class="field"><span>Client</span><select class="input" name="clientId">${options(clients.list(), f.clientId, { valueKey: 'id', labelKey: 'name', empty: 'Semua' })}</select></label>
           <label class="field"><span>Tipe</span><select class="input" name="type">${options(master.types(), f.type, { empty: 'Semua' })}</select></label>
+          <label class="field"><span>Tiket</span><select class="input" name="ticket">${options(projects.TICKET_KINDS, f.ticket, { valueKey: 'key', labelKey: 'label', empty: 'Semua' })}</select></label>
           <label class="field"><span>Status</span><select class="input" name="status"><option value="">Semua</option><option value="_open" ${f.status === '_open' ? 'selected' : ''}>Semua yang belum selesai</option>${options(master.statusNames(), f.status)}</select></label>
           <label class="field"><span>Modul</span><select class="input" name="module">${options(moduleList, f.module, { empty: 'Semua' })}</select></label>
           <label class="field"><span>Cost / Free MD</span><select class="input" name="costType">${options(master.COST_TYPES, f.costType, { empty: 'Semua' })}</select></label>
@@ -69,7 +71,7 @@ export default {
           <label class="field"><span>Target s/d</span><input class="input" type="date" name="targetTo" value="${esc(f.targetTo)}" /></label>
           <label class="field"><span>BAST</span><select class="input" name="bast">${options([{ v: 'yes', l: 'Sudah BAST' }, { v: 'no', l: 'Belum BAST' }], f.bast, { valueKey: 'v', labelKey: 'l', empty: 'Semua' })}</select></label>
           <label class="field"><span>Khusus</span><select class="input" name="flag">${options([{ v: 'overdue', l: 'Lewat target' }, { v: 'outstanding', l: 'Ada outstanding' }], f.flag, { valueKey: 'v', labelKey: 'l', empty: '-' })}</select></label>
-          <div class="field span-4 filter-actions"><button type="button" class="btn btn--ghost btn--sm" data-reset>Reset filter</button></div>
+          <div class="field span-3 filter-actions"><button type="button" class="btn btn--ghost btn--sm" data-reset>Reset filter</button></div>
         </div>
       </form>
       <div data-result></div>`;
