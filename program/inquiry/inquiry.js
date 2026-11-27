@@ -8,7 +8,8 @@ import * as master from '../../service/master.service.js';
 import { downloadCSV } from '../../service/export.service.js';
 import { esc, pageHeader, options, emptyState, statCard } from '../../service/ui.service.js';
 import { number, md, rupiahShort, today } from '../../service/format.service.js';
-import { projectTable, bindSort, csvColumns, COLUMNS } from '../shared/project-table.js';
+import { projectTable, bindSort, csvColumns, COLUMNS, sortRows } from '../shared/project-table.js';
+import { rememberOrder } from '../project/project-form.js';
 
 const KEY = 'pm.inquiry';
 const EMPTY = { q: '', clientId: '', type: '', status: '', module: '', costType: '', pic: '', dateFrom: '', dateTo: '', targetFrom: '', targetTo: '', bast: '', flag: '' };
@@ -79,6 +80,7 @@ export default {
 
     const draw = () => {
       rows = apply(f);
+      rememberOrder(sortRows(rows, view.sortKey, view.sortDir).map((p) => p.id));
       const s = projects.summary(rows);
       result.innerHTML = rows.length
         ? `

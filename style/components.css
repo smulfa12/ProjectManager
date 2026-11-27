@@ -193,3 +193,11 @@ tr[data-open] { cursor: pointer; }
 }
 .toast[data-type='error'] { background: var(--red); }
 .toast--show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ===== Navigasi tiket (Previous / Next) di form edit ===== */
+.ticket-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; margin-bottom: 14px; background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  position: sticky; top: 58px; z-index: 1; /* tetap terlihat saat form di-scroll */
+}

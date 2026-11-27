@@ -295,7 +295,7 @@ export default {
     bindTabs(el, show);
     show(tab);
 
-    el.querySelector('[data-edit]').addEventListener('click', () => openProjectForm({ id: p.id, onSaved: redraw }));
+    el.querySelector('[data-edit]').addEventListener('click', () => openProjectForm({ id: p.id, onSaved: (saved) => (saved.id === p.id ? redraw() : null) }));
     el.querySelector('[data-status]').addEventListener('change', async (e) => {
       const ok = await attempt(() => projects.save(p.id, { ...projects.get(p.id), status: e.target.value }), `Status → ${e.target.value}`);
       if (ok) redraw();

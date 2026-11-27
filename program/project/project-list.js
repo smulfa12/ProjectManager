@@ -10,8 +10,8 @@ import * as auth from '../../service/auth.service.js';
 import { downloadCSV } from '../../service/export.service.js';
 import { esc, pageHeader, options, emptyState, confirmDialog, attempt } from '../../service/ui.service.js';
 import { today } from '../../service/format.service.js';
-import { projectTable, bindSort, csvColumns } from '../shared/project-table.js';
-import { openProjectForm } from './project-form.js';
+import { projectTable, bindSort, csvColumns, sortRows } from '../shared/project-table.js';
+import { openProjectForm, rememberOrder } from './project-form.js';
 
 export default {
   path: '/project',
@@ -50,6 +50,8 @@ export default {
         .filter((p) => !state.costType || p.costType === state.costType)
         .filter((p) => (state.status === '_open' ? !master.isClosed(p.status) : !state.status || p.status === state.status));
 
+      const order = sortRows(rows, state.sortKey, state.sortDir).map((p) => p.id);
+      rememberOrder(order);
       listEl.innerHTML = rows.length
         ? `<div class="card card--flush">${projectTable(rows, {
             sortKey: state.sortKey,
@@ -62,7 +64,7 @@ export default {
         : emptyState('📁', 'Belum ada project', canCreate ? 'Klik "+ Project Baru" untuk menambah.' : 'Tambahkan client dulu di menu Monitoring Client.');
 
       bindSort(listEl, state, draw);
-      listEl.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openProjectForm({ id: b.dataset.edit, onSaved: draw })));
+      listEl.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openProjectForm({ id: b.dataset.edit, onSaved: draw, ids: order })));
       listEl.querySelectorAll('[data-del]').forEach(
         (b) =>
           (b.onclick = async () => {

@@ -14,16 +14,45 @@ const text = (name, v, extra = '') => `<input class="input" name="${name}" value
 const date = (name, v) => `<input class="input" type="date" name="${name}" value="${esc(v ?? '')}" />`;
 const money = (name, v) => `<input class="input num" name="${name}" inputmode="numeric" data-money value="${moneyValue(v)}" />`;
 
-/** Buka form. onSaved(project) dipanggil setelah tersimpan. */
-export function openProjectForm({ id = '', preset = {}, onSaved } = {}) {
+/** Urutan tiket terakhir yang tampil di List Project / Inquiry (dipakai tombol Previous / Next). */
+const ORDER_KEY = 'pm.project.order';
+export function rememberOrder(ids) {
+  try {
+    sessionStorage.setItem(ORDER_KEY, JSON.stringify(ids));
+  } catch { /* abaikan */ }
+}
+export function rememberedOrder(id) {
+  try {
+    const ids = JSON.parse(sessionStorage.getItem(ORDER_KEY)) || [];
+    if (ids.includes(id)) return ids;
+  } catch { /* abaikan */ }
+  return projects.list().map((p) => p.id);
+}
+
+/**
+ * Buka form. onSaved(project) dipanggil setelah tersimpan.
+ * ids = urutan tiket untuk tombol Previous / Next (mode edit).
+ */
+export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
   const p = id ? projects.get(id) : { date: today(), costType: 'Cost', status: master.statusNames()[0], ...preset };
   const clientList = clients.list({ includeInactive: !!id });
+  const order = id ? (ids && ids.includes(id) ? ids : rememberedOrder(id)).filter((x) => projects.get(x)) : [];
+  const pos = order.indexOf(id);
+  const navBar = () =>
+    order.length > 1
+      ? `<div class="ticket-nav">
+          <button type="button" class="btn btn--ghost btn--sm" data-prev ${pos <= 0 ? 'disabled' : ''} title="Tiket sebelumnya">◀ Previous</button>
+          <span class="muted small">Tiket <b>${pos + 1}</b> dari ${order.length}${p.jiraNo ? ` · ${esc(p.jiraNo)}` : ''}</span>
+          <button type="button" class="btn btn--ghost btn--sm" data-next ${pos >= order.length - 1 ? 'disabled' : ''} title="Tiket berikutnya">Next ▶</button>
+        </div>`
+      : '';
 
   const modal = openModal({
     title: id ? `Edit Project ${p.code}` : 'Project Baru',
     wide: true,
     body: `
       <form class="form" data-form>
+        ${navBar()}
         <fieldset>
           <legend>Identitas</legend>
           <div class="form-grid">
@@ -98,22 +127,50 @@ export function openProjectForm({ id = '', preset = {}, onSaved } = {}) {
   form.mandays.addEventListener('input', () => recalc(true));
   form.date.addEventListener('change', () => !id && (form.code.placeholder = `Otomatis: ${projects.nextCode(form.date.value || today())}`));
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  /** Simpan isian form. Mengembalikan project tersimpan, atau null bila gagal. */
+  const save = async () => {
     const v = formData(form);
     const input = { ...v, priceTcv: parseNumber(v.priceTcv), revenue: parseNumber(v.revenue), grossProfit: parseNumber(v.grossProfit), mandays: Number(v.mandays) || 0 };
     delete input._note;
-    const btn = form.querySelector('[type=submit]');
-    btn.disabled = true;
     try {
-      const saved = await projects.save(id, input, v._note || '');
-      toast(id ? 'Project diperbarui' : `Project ${saved.code} dibuat`);
-      modal.close();
-      onSaved?.(saved);
+      return await projects.save(id, input, v._note || '');
     } catch (err) {
       toast(err.message, 'error');
-      btn.disabled = false;
+      return null;
     }
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('[type=submit]');
+    btn.disabled = true;
+    const saved = await save();
+    if (!saved) return (btn.disabled = false);
+    toast(id ? 'Project diperbarui' : `Project ${saved.code} dibuat`);
+    modal.close();
+    onSaved?.(saved);
   });
+
+  // Previous / Next: perubahan yang belum disimpan otomatis disimpan dulu
+  const snapshot = new URLSearchParams(new FormData(form)).toString();
+  const go = async (step) => {
+    const target = order[pos + step];
+    if (!target) return;
+    const buttons = form.querySelectorAll('[data-prev],[data-next],[type=submit]');
+    buttons.forEach((b) => (b.disabled = true));
+    if (new URLSearchParams(new FormData(form)).toString() !== snapshot) {
+      const saved = await save();
+      if (!saved) {
+        buttons.forEach((b) => (b.disabled = false));
+        return;
+      }
+      toast(`${saved.code} disimpan`);
+      onSaved?.(saved);
+    }
+    modal.close();
+    openProjectForm({ id: target, onSaved, ids: order });
+  };
+  form.querySelector('[data-prev]')?.addEventListener('click', () => go(-1));
+  form.querySelector('[data-next]')?.addEventListener('click', () => go(1));
   return modal;
 }
