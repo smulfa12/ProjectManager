@@ -73,6 +73,31 @@
       }
       window.addEventListener('error', function (e) { onGlobalError(String(e.message || e.error || 'Error')); });
       window.addEventListener('unhandledrejection', function (e) { onGlobalError(String((e.reason && e.reason.message) || e.reason)); });
+      /*
+       * Cek versi: nomor versi diambil langsung dari server (tanpa cache). Bila berbeda dengan versi
+       * terakhir yang dibuka di browser ini, semua file JS/CSS diambil ulang lalu halaman dimuat ulang
+       * sekali — mencegah campuran file lama & baru setelah update (mis. tombol baru tidak muncul).
+       */
+      (function () {
+        var KEY = 'pm.version';
+        fetch('service/version.service.js', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.text() : ''; })
+          .then(function (t) {
+            var m = /APP_VERSION\s*=\s*'([^']+)'/.exec(t);
+            if (!m) return;
+            var latest = m[1], seen = null;
+            try { seen = localStorage.getItem(KEY); localStorage.setItem(KEY, latest); } catch (e) { return; }
+            if (!seen || seen === latest) return;
+            var refresh = function () {
+              var app = document.getElementById('app');
+              if (app) app.innerHTML = '<div class="boot">Memperbarui aplikasi ke ' + latest + '…</div>';
+              window.pmHardReload();
+            };
+            // tunggu semua modul termuat supaya ikut diambil ulang
+            if (document.readyState === 'complete') refresh(); else window.addEventListener('load', refresh);
+          })
+          .catch(function () {});
+      })();
       // berhasil dimuat → izinkan pemulihan otomatis lagi di update berikutnya
       window.addEventListener('load', function () { setTimeout(function () { if (document.querySelector('#app .view')) sessionStorage.removeItem('pm.autoReload'); }, 3000); });
     </script>
