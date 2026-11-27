@@ -37,6 +37,15 @@
       <main id="app" class="app"><div class="boot">Memuat…</div></main>
     </div>
 
+    <script>
+      // Tampilkan error saat aplikasi gagal dimuat (supaya tidak hanya layar kosong)
+      window.addEventListener('error', function (e) {
+        var app = document.getElementById('app');
+        if (!app || app.querySelector('.view')) return;
+        app.innerHTML = '<div class="app-error"><b>⚠️ Aplikasi gagal dimuat</b><p>' + String(e.message || e.error || 'Error').replace(/</g, '&lt;') +
+          '</p><p class="small">Muat ulang dengan <b>Ctrl+Shift+R</b>. Pastikan server dijalankan dari folder repo ProjectManager.</p></div>';
+      }, true);
+    </script>
     <script type="module" src="app.js"></script>
   </body>
 </html>
