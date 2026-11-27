@@ -96,18 +96,20 @@ export default {
       body.innerHTML = `
         <div class="card card--flush"><div class="table-wrap">
           <table class="table meeting-table">
-            <thead><tr><th>ID / Jira</th><th>Nama Project</th><th>PIC MLPT</th><th>Target</th><th style="width:22%">Update terakhir</th><th>Status</th><th style="width:28%">Update ${dateLabel(f.date)}</th><th></th></tr></thead>
+            <thead><tr><th class="meeting-project">Project</th><th>PIC MLPT</th><th>Target</th><th style="width:22%">Update terakhir</th><th>Status</th><th style="width:28%">Update ${dateLabel(f.date)}</th><th></th></tr></thead>
             <tbody>
               ${rows
                 .map((p) => {
-                  const head = p.clientId !== lastClient ? `<tr class="meeting-group"><td colspan="8">🏦 ${esc(clients.nameOf(p.clientId))}</td></tr>` : '';
+                  const head = p.clientId !== lastClient ? `<tr class="meeting-group"><td colspan="7">🏦 ${esc(clients.nameOf(p.clientId))}</td></tr>` : '';
                   lastClient = p.clientId;
                   const late = p.target && !master.isClosed(p.status) && daysUntil(p.target) < 0;
                   const done = updatedOn(p.id, f.date);
                   return `${head}
                   <tr data-pid="${esc(p.id)}" class="${done ? 'is-done' : ''}">
-                    <td class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener">${esc(p.code)}</a><br><small class="muted">${jiraLink(p)} · ${esc(p.type || '-')}</small></td>
-                    <td><span class="clamp">${esc(p.title || p.outstanding || '-')}</span></td>
+                    <td class="meeting-project">
+                      <div class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener"><b>${esc(p.code)}</b></a> <small class="muted">· ${jiraLink(p)} · ${esc(p.type || '-')}</small></div>
+                      <div class="meeting-title">${esc(p.title || p.outstanding || '-')}</div>
+                    </td>
                     <td><input class="input input--sm meeting-pic" data-pic list="pm-meeting-pics" value="${esc(p.picMlpt || '')}" placeholder="PIC MLPT" /></td>
                     <td><input class="input input--sm meeting-target ${late ? 'is-late' : ''}" type="date" data-target value="${esc(p.target || '')}" ${master.canSetTarget(p.status) ? '' : 'disabled'} title="${targetTitle(p.status, late)}" /></td>
                     <td data-last>${lastCell(p)}</td>

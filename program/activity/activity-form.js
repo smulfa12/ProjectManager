@@ -11,7 +11,8 @@ import { today, addDays, workDays } from '../../service/format.service.js';
 
 export function openActivityForm({ id = '', preset = {}, onSaved } = {}) {
   const a = id ? activities.get(id) : { status: 'todo', priority: 'medium', progress: 0, planStart: today(), planEnd: addDays(today(), 2), ...preset };
-  const projectList = projects.list();
+  // hanya project yang belum selesai; project activity yang sedang diedit tetap muncul
+  const projectList = projects.list().filter((p) => !master.isClosed(p.status) || p.id === a.projectId);
   const memberOpts = (projectId) => {
     const p = projects.get(projectId);
     const list = p ? members.handlersOf(p.clientId) : members.visible();

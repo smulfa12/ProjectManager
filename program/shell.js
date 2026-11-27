@@ -6,6 +6,7 @@ import * as auth from '../service/auth.service.js';
 import * as store from '../service/store.service.js';
 import { esc, confirmDialog } from '../service/ui.service.js';
 import { navigate } from '../service/router.service.js';
+import { APP_VERSION } from '../service/version.service.js';
 
 export const MENU = [
   { path: '/', section: 'dashboard', icon: '📊', label: 'Dashboard Workload' },
@@ -33,7 +34,7 @@ function renderUser() {
   box.innerHTML = user
     ? `
       <div class="userbox__name">${esc(me?.name || user.email)}</div>
-      <div class="userbox__role">${esc(auth.roleLabel())}${store.mode() === 'local' ? ' · Mode lokal' : ''}</div>
+      <div class="userbox__role">${esc(auth.roleLabel())}${store.mode() === 'local' ? ' · Mode lokal' : ''} <span class="userbox__version" title="Versi aplikasi">${APP_VERSION}</span></div>
       ${store.mode() === 'cloud' ? '<button class="btn btn--sm btn--ghost-dark" data-logout>Keluar</button>' : ''}`
     : '';
   box.querySelector('[data-logout]')?.addEventListener('click', async () => {

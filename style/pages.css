@@ -160,3 +160,5 @@
 .meeting-target { width: 140px; min-width: 0; }
 .meeting-target.is-late { color: var(--red); border-color: var(--red); }
 .meeting-target:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
+.meeting-project { min-width: 260px; max-width: 360px; }
+.meeting-title { margin-top: 2px; white-space: normal; word-break: break-word; line-height: 1.35; }
