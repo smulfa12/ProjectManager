@@ -3,9 +3,19 @@
  * Kolom bisa diurutkan (klik judul kolom) dan di-export ke CSV.
  */
 import * as clients from '../../service/client.service.js';
+import * as projects from '../../service/project.service.js';
 import * as master from '../../service/master.service.js';
 import { esc, badge } from '../../service/ui.service.js';
 import { number, rupiah, dateLabel, daysUntil } from '../../service/format.service.js';
+
+/** No Jira sebagai link ke Jira (tiket BV-), selain itu teks biasa. */
+export function jiraLink(p) {
+  const url = projects.jiraUrl(p);
+  if (!p.jiraNo) return '<span class="muted">-</span>';
+  return url
+    ? `<a class="jira-link" href="${esc(url)}" target="_blank" rel="noopener" title="Buka di Jira">${esc(p.jiraNo)} ↗</a>`
+    : esc(p.jiraNo);
+}
 
 const statusBadge = (p) => badge(p.status || '-', master.statusOf(p.status).tone);
 
@@ -21,7 +31,7 @@ export const COLUMNS = [
   { key: 'code', nowrap: true, label: 'ID Project', html: (p) => `<a href="#/project/detail?id=${esc(p.id)}"><b>${esc(p.code)}</b></a>` },
   { key: 'clientId', nowrap: true, label: 'Client', value: (p) => clients.nameOf(p.clientId), html: (p) => `<span title="${esc(clients.nameOf(p.clientId))}">${esc(clients.get(p.clientId)?.code || '-')}</span>` },
   { key: 'type', label: 'Tipe' },
-  { key: 'jiraNo', nowrap: true, label: 'No Jira' },
+  { key: 'jiraNo', nowrap: true, label: 'No Jira', html: (p) => jiraLink(p) },
   { key: 'title', label: 'Nama Project', html: (p) => `<span class="clamp">${esc(p.title || '-')}</span>` },
   { key: 'picMlpt', label: 'PIC MLPT' },
   { key: 'target', nowrap: true, label: 'Target', html: targetCell },

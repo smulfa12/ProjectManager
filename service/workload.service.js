@@ -23,7 +23,7 @@ function group(rows, keyOf, labelOf) {
   return [...map.values()].map((g) => ({ ...g, ...projects.summary(g.rows) })).sort((a, b) => b.count - a.count || b.mandays - a.mandays);
 }
 
-export function build({ from, to, clientId = '', type = '' }) {
+export function build({ from, to, clientId = '', type = '', team = '' }) {
   const rows = projects.list().filter((p) => inRange(projectDate(p), { from, to }) && (!clientId || p.clientId === clientId) && (!type || p.type === type));
   const projectIds = new Set(rows.map((p) => p.id));
   const acts = activities.list().filter((a) => (a.projectId ? projectIds.has(a.projectId) : !clientId && !type));
@@ -38,7 +38,13 @@ export function build({ from, to, clientId = '', type = '' }) {
 
   // Beban tim: 2 minggu ke depan
   const window = { from: today(), to: addDays(today(), 13) };
-  const memberRows = members.visible().map((m) => {
+  // Member yang terkait client: meng-handle client dalam cakupan (client terpilih / yang boleh dilihat),
+  // atau punya project / activity di cakupan ini. Admin tanpa client & tanpa pekerjaan tidak ditampilkan.
+  const scope = new Set(clientId ? [clientId] : clients.list().map((c) => c.id));
+  const busy = new Set([...acts.map((a) => a.memberId), ...rows.flatMap((p) => (p.members || []).map((x) => x.memberId))]);
+  const related = members.visible().filter((m) => (m.clientIds || []).some((c) => scope.has(c)) || busy.has(m.id));
+  const teams = [...new Set(related.map((m) => m.team || 'Tanpa Tim'))].sort();
+  const memberRows = related.filter((m) => !team || (m.team || 'Tanpa Tim') === team).map((m) => {
     const load = activities.memberLoad(m.id, window);
     const capacity = load.capacityDays * (Number(m.dailyHours) || 8);
     const mine = acts.filter((a) => a.memberId === m.id);
@@ -85,6 +91,7 @@ export function build({ from, to, clientId = '', type = '' }) {
     types,
     matrix,
     byTeam,
+    teams,
     members: memberRows.sort((a, b) => b.utilization - a.utilization),
     window,
     clientsCount: clients.list().length,

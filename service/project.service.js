@@ -210,6 +210,17 @@ export function ticketKind(p) {
   if (/channel/i.test(j)) return 'Channel';
   return 'Lainnya';
 }
+/**
+ * Link tiket Jira (hanya tiket BV-): URL dasar (Setting → Master Data) + No Jira.
+ * "BV 5335" / "bv-5335" dirapikan menjadi "BV-5335". Selain BV- (mis. Channel) tidak punya link.
+ */
+export function jiraUrl(p) {
+  if (ticketKind(p) !== 'BV') return '';
+  const key = String(p.jiraNo).trim().toUpperCase().replace(/^BV[\s-]?/, 'BV-');
+  const base = master.links().jiraUrl || '';
+  return base ? base.replace(/\/?$/, '/') + encodeURIComponent(key) : '';
+}
+
 export const TICKET_KINDS = [
   { key: 'BV', label: 'Tiket BV-' },
   { key: 'Channel', label: 'Channel' },
