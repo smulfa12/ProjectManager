@@ -149,6 +149,7 @@ export default {
   title: 'Monitoring Client',
   render(el, params) {
     let tab = params.tab || 'overview';
+    if (tab === 'sla' && !auth.isAdmin()) tab = 'overview'; // Setting SLA khusus admin
     let slaClient = params.client || '';
     const draw = () => {
       const list = clients.list();
@@ -194,7 +195,7 @@ export default {
 
     el.innerHTML = `
       ${pageHeader({ title: 'Monitoring Client', subtitle: 'Pemakaian free mandays, waived, harga, kontrak maintenance & project per client', icon: '🏦', actions: auth.isAdmin() ? '<button class="btn btn--primary" data-new>+ Client Baru</button>' : '' })}
-      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays & Waived'], ['maintenance', '💼 Maintenance & Amortisasi'], ['sla', '⏱️ SLA PRL']], tab)}
+      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays & Waived'], ['maintenance', '💼 Maintenance & Amortisasi'], ...(auth.isAdmin() ? [['sla', '⏱️ SLA PRL']] : [])], tab)}
       <div data-body></div>`;
     bindTabs(el, (t) => {
       tab = t;

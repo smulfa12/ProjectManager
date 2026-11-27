@@ -14,6 +14,7 @@ import { dateLabel, today, number } from '../../service/format.service.js';
 import { ganttChart, autoRange } from '../shared/gantt.js';
 import { kanbanBoard } from '../shared/kanban.js';
 import { openActivityForm } from './activity-form.js';
+import * as sdlc from '../../service/sdlc.service.js';
 
 const VIEW_KEY = 'pm.activity.view';
 
@@ -28,6 +29,11 @@ function filtered(f) {
     if (f.memberId && a.memberId !== f.memberId) return false;
     if (f.projectId && a.projectId !== f.projectId) return false;
     if (f.clientId && projects.get(a.projectId)?.clientId !== f.clientId) return false;
+    // pisah timeline CR / PRL (activity internal tanpa project hanya di "Semua")
+    if (f.cat) {
+      const p = projects.get(a.projectId);
+      if (!p || sdlc.category(p) !== f.cat) return false;
+    }
     if (f.q && !`${a.title} ${a.description} ${projectLabel(a)}`.toLowerCase().includes(f.q.toLowerCase())) return false;
     if (f.scope === 'open' && a.status === 'done') return false;
     if (f.scope === 'today' && !activities.isTargetOn(a, t)) return false;
@@ -36,15 +42,19 @@ function filtered(f) {
   });
 }
 
-function groupsOf(items, by) {
+function groupsOf(items, by, cat = '') {
   const map = new Map();
   items.forEach((a) => {
-    const key = by === 'project' ? a.projectId || '' : a.memberId || '';
+    const key = by === 'project' ? a.projectId || '' : by === 'step' ? sdlc.stepName(a) || '~' : a.memberId || '';
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(a);
   });
   return [...map.entries()]
     .map(([key, list]) => {
+      if (by === 'step') {
+        // urut sesuai urutan step di Setting SDLC
+        return { label: key === '~' ? 'Activity lain (bukan step SDLC)' : key, sub: '', icon: '<span class="group-icon">🧭</span>', items: list, order: key };
+      }
       if (by === 'project') {
         const p = projects.get(key);
         return { label: p ? `${p.code} ${p.title || ''}` : 'Internal / tanpa project', sub: p ? clients.nameOf(p.clientId) : '', icon: '<span class="group-icon">📁</span>', items: list };
@@ -52,7 +62,12 @@ function groupsOf(items, by) {
       const m = members.get(key);
       return { label: m?.name || 'Belum di-assign', sub: m?.team || '', icon: members.avatar(m, 26), items: list };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => {
+      if (by !== 'step') return a.label.localeCompare(b.label);
+      const order = (cat === 'PRL' ? [...sdlc.steps('PRL'), ...sdlc.steps('CR')] : [...sdlc.steps('CR'), ...sdlc.steps('PRL')]).map((s) => s.name);
+      const rank = (g) => (g.order === '~' ? 999 : order.indexOf(g.order) < 0 ? 998 : order.indexOf(g.order));
+      return rank(a) - rank(b);
+    });
 }
 
 function table(items) {
@@ -94,7 +109,7 @@ export default {
   render(el, params) {
     const me = auth.currentMember();
     let view = params.view || sessionStorage.getItem(VIEW_KEY) || 'gantt';
-    const f = { memberId: params.member || '', projectId: params.project || '', clientId: '', q: '', scope: 'open', groupBy: 'member', zoom: 'day' };
+    const f = { memberId: params.member || '', projectId: params.project || '', clientId: '', q: '', scope: 'open', groupBy: 'member', zoom: 'day', cat: params.cat || '' };
 
     el.innerHTML = `
       ${pageHeader({ title: 'List Activity Member', subtitle: 'Timeline target vs realtime — Gantt chart & Kanban', icon: '🗓️', actions: '<button class="btn btn--primary" data-add>+ Activity</button>' })}
@@ -109,13 +124,16 @@ export default {
         </div>
       </div>
       <div class="toolbar">
+        <div class="chips seg" data-cat>
+          ${[['', 'Semua'], ...sdlc.CATEGORIES.map((c) => [c.key, `${c.icon} ${c.label}`])].map(([k, l]) => `<button class="chip ${k === f.cat ? 'chip--on' : ''}" data-c="${k}">${l}</button>`).join('')}
+        </div>
         <div class="chips" data-scope>
           ${[['open', 'Belum selesai'], ['today', 'Target hari ini'], ['overdue', 'Terlambat'], ['all', 'Semua']].map(([k, l]) => `<button class="chip ${k === f.scope ? 'chip--on' : ''}" data-s="${k}">${l}</button>`).join('')}
           ${me ? `<button class="chip" data-mine>👤 Activity saya</button>` : ''}
         </div>
         <div class="toolbar__right" data-gantt-opts>
           <label class="small muted">Kelompok</label>
-          <select class="input input--sm" data-f="groupBy">${options([{ k: 'member', l: 'Per member' }, { k: 'project', l: 'Per project' }], f.groupBy, { valueKey: 'k', labelKey: 'l' })}</select>
+          <select class="input input--sm" data-f="groupBy">${options([{ k: 'member', l: 'Per member' }, { k: 'project', l: 'Per project' }, { k: 'step', l: 'Per step SDLC' }], f.groupBy, { valueKey: 'k', labelKey: 'l' })}</select>
           <select class="input input--sm" data-f="zoom">${options([{ k: 'day', l: 'Harian' }, { k: 'week', l: 'Mingguan' }, { k: 'month', l: 'Bulanan' }], f.zoom, { valueKey: 'k', labelKey: 'l' })}</select>
         </div>
       </div>
@@ -143,7 +161,7 @@ export default {
       if (view === 'gantt') {
         box.innerHTML = '<div class="card card--flush" data-g></div>';
         ganttChart(box.querySelector('[data-g]'), {
-          groups: groupsOf(items, f.groupBy),
+          groups: groupsOf(items, f.groupBy, f.cat),
           ...autoRange(items),
           zoom: f.zoom,
           label: (a) => (f.groupBy === 'project' ? esc(members.nameOf(a.memberId)) : esc(projectLabel(a))),
@@ -174,6 +192,13 @@ export default {
     });
     el.querySelectorAll('[data-f]').forEach((s) => s.addEventListener('change', () => ((f[s.dataset.f] = s.value), draw())));
     el.querySelector('[data-q]').addEventListener('input', (e) => ((f.q = e.target.value), draw()));
+    el.querySelectorAll('[data-c]').forEach((b) =>
+      b.addEventListener('click', () => {
+        f.cat = b.dataset.c;
+        el.querySelectorAll('[data-c]').forEach((x) => x.classList.toggle('chip--on', x === b));
+        draw();
+      })
+    );
     el.querySelectorAll('[data-s]').forEach((b) =>
       b.addEventListener('click', () => {
         f.scope = b.dataset.s;
