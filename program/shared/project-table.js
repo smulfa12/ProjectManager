@@ -17,12 +17,16 @@ function targetCell(p) {
 
 /** Definisi semua kolom Data Project. value = nilai mentah (sort & CSV), html = tampilan. */
 export const COLUMNS = [
-  { key: 'code', label: 'Uniq ID Project', html: (p) => `<a href="#/project/detail?id=${esc(p.id)}"><b>${esc(p.code)}</b></a>` },
-  { key: 'systemId', label: 'Project ID Sistem' },
-  { key: 'title', label: 'Nama Project', html: (p) => `<span class="clamp">${esc(p.title || '-')}</span>` },
+  // 8 kolom utama tampil paling awal
+  { key: 'code', nowrap: true, label: 'ID Project', html: (p) => `<a href="#/project/detail?id=${esc(p.id)}"><b>${esc(p.code)}</b></a>` },
+  { key: 'clientId', nowrap: true, label: 'Client', value: (p) => clients.nameOf(p.clientId), html: (p) => `<span title="${esc(clients.nameOf(p.clientId))}">${esc(clients.get(p.clientId)?.code || '-')}</span>` },
   { key: 'type', label: 'Tipe' },
-  { key: 'clientId', label: 'Client', value: (p) => clients.nameOf(p.clientId) },
-  { key: 'jiraNo', label: 'No Jira' },
+  { key: 'jiraNo', nowrap: true, label: 'No Jira' },
+  { key: 'title', label: 'Nama Project', html: (p) => `<span class="clamp">${esc(p.title || '-')}</span>` },
+  { key: 'picMlpt', label: 'PIC MLPT' },
+  { key: 'target', nowrap: true, label: 'Target', html: targetCell },
+  { key: 'status', label: 'Status', html: statusBadge },
+  { key: 'systemId', label: 'Project ID Sistem' },
   { key: 'module', label: 'Modul' },
   { key: 'crNo', label: 'No CR Client' },
   { key: 'outstanding', label: 'Project Outstanding', html: (p) => `<span class="clamp">${esc(p.outstanding || '-')}</span>` },
@@ -34,14 +38,11 @@ export const COLUMNS = [
   { key: 'grossProfit', label: 'Gross Profit', num: true, html: (p) => `<span class="${p.grossProfit < 0 ? 'text-red' : ''}">${rupiah(p.grossProfit)}</span>` },
   { key: 'bast', label: 'BAST', html: (p) => (p.bast || p.bastDate ? `${esc(p.bast || '✓')}${p.bastDate ? `<br><small class="muted">${dateLabel(p.bastDate)}</small>` : ''}` : '<span class="muted">-</span>') },
   { key: 'picBank', label: 'PIC Bank' },
-  { key: 'picMlpt', label: 'PIC MLPT' },
-  { key: 'target', label: 'Target', html: targetCell },
-  { key: 'status', label: 'Status', html: statusBadge },
   { key: 'remark', label: 'Remark', html: (p) => `<span class="clamp">${esc(p.remark || '-')}</span>` },
   { key: 'notes', label: 'Notes', html: (p) => `<span class="clamp">${esc(p.notes || '-')}</span>` },
 ];
 
-export const COMPACT = ['code', 'title', 'type', 'clientId', 'module', 'jiraNo', 'mandays', 'priceTcv', 'picMlpt', 'target', 'status'];
+export const COMPACT = ['code', 'clientId', 'type', 'jiraNo', 'title', 'picMlpt', 'target', 'status', 'module', 'mandays', 'priceTcv'];
 
 const colValue = (c, p) => (c.value ? c.value(p) : p[c.key]);
 
@@ -72,7 +73,7 @@ export function projectTable(rows, { keys = COMPACT, sortKey = '', sortDir = 1, 
             .map(
               (p) => `
             <tr data-row="${esc(p.id)}">
-              ${cols.map((c) => `<td class="${c.num ? 'num' : ''}">${c.html ? c.html(p) : esc(colValue(c, p) || '-')}</td>`).join('')}
+              ${cols.map((c) => `<td class="${c.num ? 'num' : ''}${c.nowrap ? ' nowrap' : ''}">${c.html ? c.html(p) : esc(colValue(c, p) || '-')}</td>`).join('')}
               ${actions ? `<td class="actions">${actions(p)}</td>` : ''}
             </tr>`
             )

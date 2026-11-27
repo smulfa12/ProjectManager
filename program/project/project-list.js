@@ -13,11 +13,29 @@ import { today } from '../../service/format.service.js';
 import { projectTable, bindSort, csvColumns, sortRows } from '../shared/project-table.js';
 import { openProjectForm, rememberOrder } from './project-form.js';
 
+const FILTER_KEY = 'pm.project.filter';
+
 export default {
   path: '/project',
   title: 'List Project',
   render(el, params) {
-    const state = { q: params.q || '', clientId: params.client || '', status: params.status || '_open', costType: params.cost || '', sortKey: 'date', sortDir: -1 };
+    const openStatuses = () => master.statuses().filter((s) => !s.closed).map((s) => s.name);
+    // filter tersimpan selama tab browser terbuka (kembali dari detail tetap sama)
+    let saved = {};
+    try {
+      saved = JSON.parse(sessionStorage.getItem(FILTER_KEY)) || {};
+    } catch { /* abaikan */ }
+    const state = {
+      q: params.q ?? saved.q ?? '',
+      clientId: params.client ?? saved.clientId ?? '',
+      costType: params.cost ?? saved.costType ?? '',
+      type: saved.type ?? '',
+      ticket: saved.ticket ?? '',
+      // status bisa lebih dari satu; [] = semua status
+      statuses: params.status !== undefined ? (params.status ? params.status.split(',') : []) : saved.statuses ?? openStatuses(),
+      sortKey: saved.sortKey || 'date',
+      sortDir: saved.sortDir || -1,
+    };
     const canCreate = clients.list({ includeInactive: false }).length > 0;
 
     el.innerHTML = `
@@ -30,12 +48,13 @@ export default {
       <div class="toolbar">
         <input class="input input--search" data-q placeholder="Cari project…" value="${esc(state.q)}" />
         <select class="input input--sm" data-client>${options(clients.list(), state.clientId, { valueKey: 'id', labelKey: 'name', empty: 'Semua client' })}</select>
-        <select class="input input--sm" data-cost>${options(master.COST_TYPES, state.costType, { empty: 'Semua kategori biaya' })}</select>
-        <div class="chips" data-status>
-          ${[['_open', 'Belum selesai'], ['', 'Semua'], ...master.statusNames().map((s) => [s, s])]
-            .map(([k, l]) => `<button class="chip ${k === state.status ? 'chip--on' : ''}" data-s="${esc(k)}">${esc(l)}</button>`)
-            .join('')}
-        </div>
+        <select class="input input--sm" data-f="type">${options(master.types(), state.type, { empty: 'Semua tipe' })}</select>
+        <select class="input input--sm" data-f="ticket">${options(projects.TICKET_KINDS, state.ticket, { valueKey: 'key', labelKey: 'label', empty: 'Semua tiket' })}</select>
+        <select class="input input--sm" data-f="costType">${options(master.COST_TYPES, state.costType, { empty: 'Semua kategori biaya' })}</select>
+      </div>
+      <div class="toolbar">
+        <span class="small muted">Status:</span>
+        <div class="chips" data-status></div>
       </div>
       <div data-list></div>`;
 
@@ -48,7 +67,13 @@ export default {
         .filter((p) => projects.matches(p, state.q))
         .filter((p) => !state.clientId || p.clientId === state.clientId)
         .filter((p) => !state.costType || p.costType === state.costType)
-        .filter((p) => (state.status === '_open' ? !master.isClosed(p.status) : !state.status || p.status === state.status));
+        .filter((p) => !state.type || p.type === state.type)
+        .filter((p) => !state.ticket || projects.ticketKind(p) === state.ticket)
+        .filter((p) => !state.statuses.length || state.statuses.includes(p.status));
+      try {
+        sessionStorage.setItem(FILTER_KEY, JSON.stringify(state));
+      } catch { /* abaikan */ }
+      drawStatusChips();
 
       const order = sortRows(rows, state.sortKey, state.sortDir).map((p) => p.id);
       rememberOrder(order);
@@ -78,14 +103,35 @@ export default {
 
     el.querySelector('[data-q]').addEventListener('input', (e) => ((state.q = e.target.value), draw()));
     el.querySelector('[data-client]').addEventListener('change', (e) => ((state.clientId = e.target.value), draw()));
-    el.querySelector('[data-cost]').addEventListener('change', (e) => ((state.costType = e.target.value), draw()));
-    el.querySelectorAll('[data-s]').forEach((b) =>
-      b.addEventListener('click', () => {
-        state.status = b.dataset.s;
-        el.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('chip--on', x === b));
-        draw();
-      })
-    );
+    el.querySelectorAll('[data-f]').forEach((sel) => sel.addEventListener('change', () => ((state[sel.dataset.f] = sel.value), draw())));
+
+    /** Chip status: klik untuk pilih / batal pilih (boleh lebih dari satu). */
+    function drawStatusChips() {
+      const box = el.querySelector('[data-status]');
+      const all = master.statusNames();
+      const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+      const count = (name) => projects.list().filter((p) => p.status === name).length;
+      box.innerHTML = `
+        <button class="chip ${sameSet(state.statuses, openStatuses()) ? 'chip--on' : ''}" data-preset="open">Belum selesai</button>
+        <button class="chip ${!state.statuses.length ? 'chip--on' : ''}" data-preset="all">Semua</button>
+        <span class="chips__sep"></span>
+        ${all
+          .map((s) => `<button class="chip chip--check ${state.statuses.includes(s) ? 'chip--on' : ''}" data-s="${esc(s)}">${state.statuses.includes(s) ? '✓ ' : ''}${esc(s)} <small>${count(s)}</small></button>`)
+          .join('')}`;
+      box.querySelectorAll('[data-preset]').forEach((b) =>
+        b.addEventListener('click', () => {
+          state.statuses = b.dataset.preset === 'open' ? openStatuses() : [];
+          draw();
+        })
+      );
+      box.querySelectorAll('[data-s]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const s = b.dataset.s;
+          state.statuses = state.statuses.includes(s) ? state.statuses.filter((x) => x !== s) : [...state.statuses, s];
+          draw();
+        })
+      );
+    }
     el.querySelector('[data-new]').addEventListener('click', () => openProjectForm({ preset: { clientId: state.clientId }, onSaved: (p) => (location.hash = `#/project/detail?id=${p.id}`) }));
     el.querySelector('[data-export]').addEventListener('click', () => downloadCSV(`list-project-${today()}.csv`, csvColumns(), rows));
     draw();

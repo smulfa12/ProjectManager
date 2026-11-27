@@ -201,3 +201,6 @@ tr[data-open] { cursor: pointer; }
   border: 1px solid var(--line); border-radius: var(--radius-sm);
   position: sticky; top: 58px; z-index: 1; /* tetap terlihat saat form di-scroll */
 }
+
+.chips__sep { width: 1px; height: 20px; background: var(--line-2); margin: 0 4px; }
+.chip small { opacity: 0.65; margin-left: 2px; }
