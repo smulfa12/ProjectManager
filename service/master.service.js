@@ -67,12 +67,15 @@ export const ROLES = [
 ];
 
 export const ACTIVITY_STATUS = [
-  { key: 'todo', label: 'To Do', tone: 'gray' },
+  { key: 'backlog', label: 'Backlog', tone: 'gray' },
+  { key: 'todo', label: 'To Do', tone: 'teal' },
   { key: 'progress', label: 'In Progress', tone: 'blue' },
   { key: 'review', label: 'Review', tone: 'purple' },
   { key: 'done', label: 'Done', tone: 'green' },
 ];
 export const activityStatus = (k) => ACTIVITY_STATUS.find((s) => s.key === k) || ACTIVITY_STATUS[0];
+/** Activity yang sudah masuk antrian kerja (bukan backlog, belum selesai) — untuk follow up & reminder. */
+export const isActiveWork = (a) => a && !['backlog', 'done'].includes(a.status);
 
 export const PRIORITIES = [
   { key: 'high', label: 'High', tone: 'red' },

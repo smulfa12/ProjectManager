@@ -4,6 +4,8 @@
  */
 import * as store from './store.service.js';
 import * as auth from './auth.service.js';
+import * as master from './master.service.js';
+import * as sdlc from './sdlc.service.js';
 import { today, workDays } from './format.service.js';
 
 /** Activity yang boleh dilihat: project-nya boleh diakses, atau activity internal. */
@@ -23,11 +25,12 @@ export function list() {
 export const get = (id) => store.get('activities', id);
 export const ofProject = (projectId) => list().filter((a) => a.projectId === projectId);
 
-const isOverdueRaw = (a, t) => a.status !== 'done' && a.planEnd && a.planEnd < t;
+// backlog belum masuk antrian kerja → tidak dihitung terlambat / target hari ini
+const isOverdueRaw = (a, t) => master.isActiveWork(a) && a.planEnd && a.planEnd < t;
 export const isOverdue = (a) => isOverdueRaw(a, today());
 
 /** Activity yang menjadi target pada tanggal tertentu (rencana berjalan & belum selesai). */
-export const isTargetOn = (a, date) => a.status !== 'done' && a.planStart && a.planEnd && a.planStart <= date && a.planEnd >= date;
+export const isTargetOn = (a, date) => master.isActiveWork(a) && a.planStart && a.planEnd && a.planStart <= date && a.planEnd >= date;
 
 /** Terlambat/lebih cepat dari rencana (hari). Positif = terlambat. */
 export function slip(a) {
@@ -50,7 +53,7 @@ function clean(input) {
     actualEnd: input.actualEnd || '',
     planHours: Number(input.planHours) || 0,
     progress,
-    status: ['todo', 'progress', 'review', 'done'].includes(input.status) ? input.status : 'todo',
+    status: ['backlog', 'todo', 'progress', 'review', 'done'].includes(input.status) ? input.status : 'backlog',
     priority: ['low', 'medium', 'high'].includes(input.priority) ? input.priority : 'medium',
   };
 }
@@ -58,7 +61,7 @@ function clean(input) {
 /** Lengkapi tanggal aktual sesuai status (realtime). */
 function autoActual(data, before = {}) {
   const t = today();
-  if (data.status !== 'todo' && !data.actualStart) data.actualStart = before.actualStart || t;
+  if (!['todo', 'backlog'].includes(data.status) && !data.actualStart) data.actualStart = before.actualStart || t;
   if (data.status === 'done') {
     data.progress = 100;
     if (!data.actualEnd) data.actualEnd = before.actualEnd || t;
@@ -75,15 +78,19 @@ export async function save(id, input) {
   if (data.actualStart && data.actualEnd && data.actualEnd < data.actualStart) throw new Error('Tanggal selesai aktual tidak boleh sebelum mulai aktual');
   const before = id ? get(id) : {};
   autoActual(data, before);
-  return id ? store.update('activities', id, data) : store.add('activities', data);
+  const row = id ? await store.update('activities', id, data) : await store.add('activities', data);
+  if (row.status === 'done' && before.status !== 'done') await sdlc.promoteNext(row.projectId);
+  return row;
 }
 
 /** Pindah kolom kanban. */
 export async function move(id, status) {
   const a = get(id);
   if (!a || a.status === status) return a;
-  const data = autoActual({ ...a, status, progress: status === 'done' ? 100 : status === 'todo' ? a.progress : Math.max(a.progress, 10) }, a);
-  return store.update('activities', id, data);
+  const data = autoActual({ ...a, status, progress: status === 'done' ? 100 : ['todo', 'backlog'].includes(status) ? a.progress : Math.max(a.progress, 10) }, a);
+  const row = await store.update('activities', id, data);
+  if (status === 'done') await sdlc.promoteNext(row.projectId);
+  return row;
 }
 
 export const remove = (id) => store.remove('activities', id);

@@ -15,7 +15,8 @@ import * as auth from './auth.service.js';
 
 /** Isi reminder satu member pada tanggal tertentu. */
 export function forMember(member, date = today()) {
-  const mine = activities.list().filter((a) => a.memberId === member.id && a.status !== 'done');
+  // Backlog belum masuk antrian kerja → tidak diingatkan
+  const mine = activities.list().filter((a) => a.memberId === member.id && master.isActiveWork(a));
   const todayList = mine.filter((a) => activities.isTargetOn(a, date));
   const overdue = mine.filter((a) => a.planEnd && a.planEnd < date);
   const progress = mine.filter((a) => a.status === 'progress' && !todayList.includes(a) && !overdue.includes(a));

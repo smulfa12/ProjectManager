@@ -135,7 +135,7 @@ function sdlcCard(p) {
         <div class="row gap-sm">
           ${has
             ? `<button class="btn btn--ghost btn--sm" data-sdlc="sync" title="Tambah step baru / sesuaikan nama step tanpa mengubah jadwal">↻ Sinkron step</button>
-               <button class="btn btn--ghost btn--sm" data-sdlc="reset" title="Hitung ulang semua tanggal rencana dari Start project">📅 Hitung ulang jadwal</button>`
+               <button class="btn btn--ghost btn--sm" data-sdlc="reset" title="Geser rencana step berikutnya mengikuti realisasi step yang sudah selesai / berjalan">📅 Hitung ulang dari realisasi</button>`
             : '<button class="btn btn--primary btn--sm" data-sdlc="create">⚙️ Buat timeline SDLC</button>'}
         </div>
       </div>
@@ -143,12 +143,12 @@ function sdlcCard(p) {
         ${rows
           .map((r) => {
             const a = r.activity;
-            const st = r.done ? 'done' : r.late ? 'late' : r.current ? 'current' : a ? 'todo' : 'none';
+            const st = r.done ? 'done' : r.late ? 'late' : r.current ? 'current' : a ? (a.status === 'backlog' ? 'backlog' : 'todo') : 'none';
             return `<li class="sdlc-step is-${st}" ${a ? `data-open-step="${esc(a.id)}"` : ''} title="${esc(r.team ? 'Tim ' + r.team : '')}">
               <span class="sdlc-step__no">${r.done ? '✓' : r.index}</span>
               <b>${esc(r.name)}</b>
               <small>${a ? `${dateLabel(a.planStart)} – ${dateLabel(a.planEnd)}` : `${r.days} hari kerja`}</small>
-              ${a ? `<small>${r.done ? 'Selesai' : `${a.progress || 0}% · ${esc(members.nameOf(a.memberId))}`}</small>` : ''}
+              ${a ? `<small>${r.done ? `Selesai ${a.actualEnd ? dateLabel(a.actualEnd) : ''}` : `${esc(master.activityStatus(a.status).label)} · ${a.progress || 0}% · ${esc(members.nameOf(a.memberId))}`}</small>` : ''}
             </li>`;
           })
           .join('')}
@@ -204,7 +204,7 @@ function tabTimeline(el, p, redraw) {
   el.querySelectorAll('[data-sdlc]').forEach((b) =>
     b.addEventListener('click', async () => {
       const mode = b.dataset.sdlc;
-      if (mode === 'reset' && !(await confirmDialog('Hitung ulang semua tanggal rencana step SDLC dari Start project? Progress & realisasi tidak berubah.'))) return;
+      if (mode === 'reset' && !(await confirmDialog('Hitung ulang jadwal dari realisasi? Step berikutnya mulai sehari kerja setelah step sebelumnya selesai (aktual), durasi rencana tiap step tetap. Progress & realisasi tidak berubah.'))) return;
       const res = await attempt(() => sdlc.generate(projects.get(p.id), { reset: mode === 'reset' }));
       if (res) {
         toast(`Timeline SDLC: ${res.created} dibuat, ${res.updated} diperbarui${res.removed ? `, ${res.removed} dihapus` : ''}`);

@@ -7,7 +7,7 @@
  *   - lewat target / target ≤ 7 hari lagi
  *   - status menunggu pihak lain (Waiting / Submitted / Pending) → perlu FU ke bank
  *   - belum ada update ≥ 7 hari
- * Activity milik member yang belum selesai: terlambat / target hari ini.
+ * Activity milik member yang sudah di To Do / In Progress / Review (BUKAN Backlog): terlambat / target hari ini.
  */
 import * as projects from './project.service.js';
 import * as activities from './activity.service.js';
@@ -69,7 +69,8 @@ export function forMember(m) {
 
   activities
     .list()
-    .filter((a) => a.memberId === m.id && a.status !== 'done' && !a.id.startsWith('sla-')) // SLA sudah tercakup di baris project
+    // hanya activity yang sudah masuk antrian kerja (bukan Backlog); SLA sudah tercakup di baris project
+    .filter((a) => a.memberId === m.id && master.isActiveWork(a) && !a.id.startsWith('sla-'))
     .forEach((a) => {
       if (!a.planEnd) return;
       const d = diffDays(t, a.planEnd);

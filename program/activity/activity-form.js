@@ -10,7 +10,7 @@ import { esc, openModal, options, toast, formData, confirmDialog } from '../../s
 import { today, addDays, workDays } from '../../service/format.service.js';
 
 export function openActivityForm({ id = '', preset = {}, onSaved } = {}) {
-  const a = id ? activities.get(id) : { status: 'todo', priority: 'medium', progress: 0, planStart: today(), planEnd: addDays(today(), 2), ...preset };
+  const a = id ? activities.get(id) : { status: 'backlog', priority: 'medium', progress: 0, planStart: today(), planEnd: addDays(today(), 2), ...preset };
   // hanya project yang belum selesai; project activity yang sedang diedit tetap muncul
   const projectList = projects.list().filter((p) => !master.isClosed(p.status) || p.id === a.projectId);
   const memberOpts = (projectId) => {
