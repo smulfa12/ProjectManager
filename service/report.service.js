@@ -45,9 +45,58 @@ const slaCells = (p, kind) => {
 
 const fileSuffix = (f) => `${f.clientId ? clients.get(f.clientId)?.code || 'client' : 'Semua'}-${today()}`;
 
+
+/* ---------- Daftar sheet & kolom (untuk pilihan kolom laporan) ---------- */
+
+const C = {
+  ringkasan: ['Client', 'Total Tiket', 'Belum Selesai', 'Selesai', 'CR/Project', 'CR Belum Selesai', 'PRL', 'PRL Belum Selesai', 'PRL Lewat SLA', 'Mandays', 'Price TCV', 'Revenue', 'Gross Profit', 'Belum BAST'],
+  project: ['No', 'ID Project', 'Client', 'Tipe', 'No Jira', 'Link Jira', 'Nama Project', 'Modul', 'No CR Client', 'PIC Bank', 'PIC MLPT', 'Date', 'Start', 'Target', 'Selesai Aktual', 'Status', 'Lewat Target', 'Progress Activity (%)', 'Cost/Free Mandays', 'Mandays', 'Price TCV', 'Revenue', 'Gross Profit', 'BAST', 'Tanggal BAST', 'Update Terakhir', 'Isi Update Terakhir', 'Project Outstanding', 'Notes'],
+  prl: ['No', 'ID Project', 'Client', 'No Jira', 'Link Jira', 'Nama PRL', 'Modul', 'Prioritas', 'PIC Bank', 'PIC MLPT', 'Waktu Lapor', 'Batas Solusi Sementara', 'Solusi Sementara Selesai', 'SLA Sementara', 'Batas Solusi Permanen', 'Solusi Permanen Selesai', 'SLA Permanen', 'Status', 'Update Terakhir', 'Isi Update Terakhir'],
+  history: ['Tanggal', 'ID Project', 'Client', 'Tipe', 'No Jira', 'Nama Project', 'Update', 'Oleh'],
+  slaSummary: ['Client', 'Prioritas', 'Jumlah PRL', 'Sementara - Tercapai', 'Sementara - Terlambat', 'Sementara - Lewat SLA (belum selesai)', 'Sementara - Berjalan', 'Sementara - % Tercapai', 'Permanen - Tercapai', 'Permanen - Terlambat', 'Permanen - Lewat SLA (belum selesai)', 'Permanen - Berjalan', 'Permanen - % Tercapai'],
+  slaDetail: ['No', 'ID Project', 'Client', 'No Jira', 'Nama PRL', 'Prioritas', 'PIC MLPT', 'Waktu Lapor', 'SLA Sementara', 'Batas Sementara', 'Selesai Sementara', 'Durasi Sementara (jam)', 'Status SLA Sementara', 'SLA Permanen', 'Batas Permanen', 'Selesai Permanen', 'Durasi Permanen (jam)', 'Status SLA Permanen', 'Status Tiket'],
+  slaRules: ['Client', 'Prioritas', 'Solusi Sementara', 'Solusi Permanen', 'Sumber'],
+};
+
+/** Sheet & kolom tiap laporan. Kolom "kunci" (mis. Client / ID Project) selalu ikut. */
+export function sheets(kind) {
+  if (kind === 'sla')
+    return [
+      { name: 'Ringkasan SLA', columns: C.slaSummary, key: ['Client', 'Prioritas'] },
+      { name: 'Detail SLA', columns: C.slaDetail, key: ['ID Project'] },
+      { name: 'Ketentuan SLA', columns: C.slaRules, key: ['Client', 'Prioritas'] },
+    ];
+  return [
+    { name: 'Ringkasan', columns: C.ringkasan, key: ['Client'] },
+    { name: 'Per Status', columns: ['Client', ...master.statusNames(), 'Total'], key: ['Client'] },
+    { name: 'Project & CR', columns: C.project, key: ['ID Project'] },
+    { name: 'PRL', columns: C.prl, key: ['ID Project'] },
+    { name: 'History Update', columns: C.history, key: ['Tanggal', 'ID Project'] },
+  ];
+}
+
+/**
+ * Pilihan user: { [sheet]: false | string[] }  (false = sheet tidak dibuat, array = kolom dipilih).
+ * Tidak ada entri = semua kolom.
+ */
+function picker(kind, choice = {}) {
+  const list = sheets(kind);
+  const on = list.filter((sh) => choice[sh.name] !== false);
+  if (!on.length) throw new Error('Pilih minimal satu sheet untuk laporan ini');
+  return {
+    has: (name) => choice[name] !== false,
+    only: (name) => {
+      const sh = list.find((x) => x.name === name);
+      const sel = Array.isArray(choice[name]) ? choice[name] : sh.columns;
+      return sh.columns.filter((c) => sh.key.includes(c) || sel.includes(c));
+    },
+  };
+}
+
 /* ---------- 1. Laporan Progress Project & PRL ---------- */
 
-export async function progressReport(filter) {
+export async function progressReport(filter, choice = {}) {
+  const pick = picker('progress', choice);
   const rows = select(filter);
   const isPrl = (p) => sla.applies(p);
   const wb = await excel.workbook();
@@ -84,7 +133,7 @@ export async function progressReport(filter) {
     Object.keys(summary[0]).slice(1).forEach((k) => (total[k] = summary.reduce((s, r) => s + r[k], 0)));
     summary.push(total);
   }
-  excel.addSheet(wb, 'Ringkasan', summary, { title: titleLines('LAPORAN PROGRESS PROJECT & PRL', filter), columns: ['Client'] });
+  if (pick.has('Ringkasan')) excel.addSheet(wb, 'Ringkasan', summary, { only: pick.only('Ringkasan'), title: titleLines('LAPORAN PROGRESS PROJECT & PRL', filter), columns: ['Client'] });
 
   // Per status
   const statuses = master.statusNames();
@@ -93,7 +142,7 @@ export async function progressReport(filter) {
     ...Object.fromEntries(statuses.map((s) => [s, list.filter((p) => p.status === s).length])),
     Total: list.length,
   }));
-  excel.addSheet(wb, 'Per Status', perStatus, { columns: ['Client'] });
+  if (pick.has('Per Status')) excel.addSheet(wb, 'Per Status', perStatus, { only: pick.only('Per Status'), columns: ['Client'] });
 
   // Detail CR / Project
   const crRows = rows.filter((p) => !isPrl(p)).map((p, i) => {
@@ -131,7 +180,7 @@ export async function progressReport(filter) {
       Notes: p.notes,
     };
   });
-  excel.addSheet(wb, 'Project & CR', crRows, { columns: ['ID Project'], widths: { 'Nama Project': 45, 'Isi Update Terakhir': 50, 'Link Jira': 30 } });
+  if (pick.has('Project & CR')) excel.addSheet(wb, 'Project & CR', crRows, { only: pick.only('Project & CR'), columns: ['ID Project'], widths: { 'Nama Project': 45, 'Isi Update Terakhir': 50, 'Link Jira': 30 } });
 
   // Detail PRL
   const prlRows = rows.filter(isPrl).map((p, i) => {
@@ -161,7 +210,7 @@ export async function progressReport(filter) {
       'Isi Update Terakhir': lu?.note || p.remark,
     };
   });
-  excel.addSheet(wb, 'PRL', prlRows, { columns: ['ID Project'], widths: { 'Nama PRL': 45, 'Isi Update Terakhir': 50, 'Link Jira': 30 } });
+  if (pick.has('PRL')) excel.addSheet(wb, 'PRL', prlRows, { only: pick.only('PRL'), columns: ['ID Project'], widths: { 'Nama PRL': 45, 'Isi Update Terakhir': 50, 'Link Jira': 30 } });
 
   // History update dalam periode
   const ids = new Set(rows.map((p) => p.id));
@@ -179,7 +228,7 @@ export async function progressReport(filter) {
       Update: [h.note, ...(h.changes || []).map((c) => `${c.label}: ${c.from} → ${c.to}`)].filter(Boolean).join(' | '),
       Oleh: h.byEmail,
     }));
-  excel.addSheet(wb, 'History Update', hist, { columns: ['Tanggal'], widths: { Update: 70, 'Nama Project': 40 } });
+  if (pick.has('History Update')) excel.addSheet(wb, 'History Update', hist, { only: pick.only('History Update'), columns: ['Tanggal'], widths: { Update: 70, 'Nama Project': 40 } });
 
   excel.download(wb, `Laporan-Progress-Project-PRL-${fileSuffix(filter)}.xlsx`);
   return { cr: crRows.length, prl: prlRows.length, history: hist.length };
@@ -187,7 +236,8 @@ export async function progressReport(filter) {
 
 /* ---------- 2. Laporan SLA ---------- */
 
-export async function slaReport(filter) {
+export async function slaReport(filter, choice = {}) {
+  const pick = picker('sla', choice);
   const rows = select(filter).filter((p) => sla.applies(p));
   const wb = await excel.workbook();
   const priorities = master.prlPriorities();
@@ -240,7 +290,7 @@ export async function slaReport(filter) {
       summary.push(line(clients.nameOf(cid), pr, list.filter((p) => p.slaTempDue)));
     });
   if (summary.length) summary.push(line('TOTAL', '', rows.filter((p) => p.slaTempDue)));
-  excel.addSheet(wb, 'Ringkasan SLA', summary, {
+  if (pick.has('Ringkasan SLA')) excel.addSheet(wb, 'Ringkasan SLA', summary, { only: pick.only('Ringkasan SLA'),
     title: [...titleLines('LAPORAN SLA PRL', filter), '% Tercapai = tercapai ÷ (tercapai + terlambat + lewat SLA). PRL tanpa prioritas tidak dihitung.'],
     columns: ['Client'],
   });
@@ -274,7 +324,7 @@ export async function slaReport(filter) {
         'Status Tiket': p.status,
       };
     });
-  excel.addSheet(wb, 'Detail SLA', detail, { columns: ['ID Project'], widths: { 'Nama PRL': 45 } });
+  if (pick.has('Detail SLA')) excel.addSheet(wb, 'Detail SLA', detail, { only: pick.only('Detail SLA'), columns: ['ID Project'], widths: { 'Nama PRL': 45 } });
 
   // Ketentuan SLA tiap client
   const rules = clients
@@ -286,7 +336,7 @@ export async function slaReport(filter) {
         return { Client: c.name, Prioritas: pr, 'Solusi Sementara': sla.ruleLabel(r.temp), 'Solusi Permanen': sla.ruleLabel(r.perm), Sumber: c.sla?.[pr] ? 'Khusus client' : 'Bawaan' };
       })
     );
-  excel.addSheet(wb, 'Ketentuan SLA', rules, { columns: ['Client'] });
+  if (pick.has('Ketentuan SLA')) excel.addSheet(wb, 'Ketentuan SLA', rules, { only: pick.only('Ketentuan SLA'), columns: ['Client'] });
 
   excel.download(wb, `Laporan-SLA-PRL-${fileSuffix(filter)}.xlsx`);
   return { prl: rows.length };

@@ -170,5 +170,19 @@
 .report-presets { margin-bottom: 8px; }
 .report-card { display: flex; flex-direction: column; gap: 6px; }
 .report-card h3 { margin: 0; }
-.report-card .btn { align-self: flex-start; margin-top: auto; }
+.report-card .row { margin-top: auto; }
 .report-card__icon { font-size: 28px; }
+
+/* Pilih kolom laporan */
+.col-picker { display: flex; flex-direction: column; gap: 4px; }
+.col-sheet legend { display: flex; align-items: center; gap: 12px; width: 100%; }
+.col-sheet__tools { margin-left: auto; display: inline-flex; gap: 6px; }
+.col-sheet.is-off .col-grid { opacity: 0.35; pointer-events: none; }
+.col-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 8px; }
+.col-grid .check { padding: 4px 8px; }
+
+/* Dashboard: Perlu Follow Up */
+.fu-card { border-left: 4px solid var(--amber); }
+.fu-title { font-size: 13px; margin-top: 1px; }
+.fu-table td { vertical-align: top; }
+.fu-table .badge { margin: 0 2px 2px 0; }
