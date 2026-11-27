@@ -38,13 +38,43 @@
     </div>
 
     <script>
-      // Tampilkan error saat aplikasi gagal dimuat (supaya tidak hanya layar kosong)
-      window.addEventListener('error', function (e) {
+      /*
+       * Pemulihan otomatis bila browser memakai campuran file baru & lama dari cache
+       * (mis. setelah update: "xxx is not a function" / "does not provide an export").
+       * Semua file JS/CSS diambil ulang dari server tanpa cache, lalu halaman dimuat ulang (sekali).
+       */
+      window.pmHardReload = function () {
+        var urls = performance.getEntriesByType('resource')
+          .map(function (r) { return r.name; })
+          .filter(function (u) { return u.indexOf(location.origin) === 0 && /\.(js|css)(\?|$)/.test(u); });
+        urls.push(location.origin + location.pathname);
+        return Promise.all(urls.map(function (u) { return fetch(u, { cache: 'reload' }).catch(function () {}); }))
+          .then(function () { location.reload(); });
+      };
+      window.pmShowError = function (message) {
         var app = document.getElementById('app');
-        if (!app || app.querySelector('.view')) return;
-        app.innerHTML = '<div class="app-error"><b>⚠️ Aplikasi gagal dimuat</b><p>' + String(e.message || e.error || 'Error').replace(/</g, '&lt;') +
-          '</p><p class="small">Muat ulang dengan <b>Ctrl+Shift+R</b>. Pastikan server dijalankan dari folder repo ProjectManager.</p></div>';
-      }, true);
+        var stale = /is not a function|does not provide an export|is not defined|Cannot read properties of undefined/i.test(message);
+        var key = 'pm.autoReload';
+        if (stale && !sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1');
+          if (app) app.innerHTML = '<div class="boot">Memperbarui aplikasi ke versi terbaru…</div>';
+          window.pmHardReload();
+          return;
+        }
+        if (!app) return;
+        app.innerHTML = '<div class="app-error"><b>⚠️ Aplikasi gagal dimuat</b><p>' + String(message).replace(/</g, '&lt;') +
+          '</p><p><button class="btn btn--primary btn--sm" onclick="sessionStorage.removeItem(\'' + key + '\');pmHardReload()">↻ Perbarui & muat ulang</button></p>' +
+          '<p class="small">Bila tetap muncul, kirim pesan ini ke admin.</p></div>';
+      };
+      // error global: tangani hanya bila halaman belum tampil, atau tanda file versi lama
+      function onGlobalError(message) {
+        var shown = document.querySelector('#app .view');
+        if (!shown || /is not a function|does not provide an export/i.test(message)) window.pmShowError(message);
+      }
+      window.addEventListener('error', function (e) { onGlobalError(String(e.message || e.error || 'Error')); });
+      window.addEventListener('unhandledrejection', function (e) { onGlobalError(String((e.reason && e.reason.message) || e.reason)); });
+      // berhasil dimuat → izinkan pemulihan otomatis lagi di update berikutnya
+      window.addEventListener('load', function () { setTimeout(function () { if (document.querySelector('#app .view')) sessionStorage.removeItem('pm.autoReload'); }, 3000); });
     </script>
     <script type="module" src="app.js"></script>
   </body>

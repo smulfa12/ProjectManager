@@ -38,13 +38,17 @@ export function createRouter({ outlet, notFound = '/', onNavigate = () => {}, gu
     view.className = 'view' + (keepScroll ? ' view--still' : '');
     outlet.appendChild(view);
     if (mod.title) document.title = `${mod.title} · Project Manager`;
-    onNavigate(path, mod);
     try {
+      onNavigate(path, mod);
       cleanup = await mod.render(view, params);
     } catch (err) {
       console.error(err);
-      view.innerHTML = `<div class="app-error"><b>⚠️ Halaman gagal ditampilkan</b><p>${String(err?.message || err).replace(/</g, '&lt;')}</p>
-        <p class="small">Coba muat ulang dengan <b>Ctrl+Shift+R</b>. Bila tetap muncul, kirim pesan ini ke admin.</p></div>`;
+      if (window.pmShowError) {
+        outlet.innerHTML = '';
+        window.pmShowError(err?.message || String(err));
+      } else {
+        view.innerHTML = `<div class="app-error"><b>⚠️ Halaman gagal ditampilkan</b><p>${String(err?.message || err).replace(/</g, '&lt;')}</p></div>`;
+      }
     }
     window.scrollTo(0, keepScroll ? scrollY : 0);
   }
