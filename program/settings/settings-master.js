@@ -13,6 +13,8 @@ const LISTS = [
   ['pm.frequencies', '🔁 Frekuensi Preventive Maintenance'],
   ['pm.noCostTypes', '🚫 Tipe tanpa Mandays / TCV / BAST (cth. PRL)'],
   ['pm.targetStatuses', '🎯 Status yang boleh ubah Target (Weekly Meeting)'],
+  ['pm.prlPriorities', '🚨 Prioritas PRL (urut dari tertinggi)'],
+  ['pm.slaTypes', '⏱️ Tipe tiket yang memakai SLA (cth. PRL)'],
 ];
 
 export function renderMaster(el) {

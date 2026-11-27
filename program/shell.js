@@ -16,6 +16,7 @@ export const MENU = [
   { path: '/activity', section: 'activity', icon: '🗓️', label: 'Activity Member' },
   { path: '/client', section: 'client', icon: '🏦', label: 'Monitoring Client' },
   { path: '/trend', section: 'trend', icon: '📈', label: 'History Trend' },
+  { path: '/report', section: 'report', icon: '📑', label: 'Laporan' },
   { path: '/reminder', section: 'reminder', icon: '⏰', label: 'Reminder', admin: true },
   { path: '/settings', section: 'settings', icon: '⚙️', label: 'Setting', admin: true },
 ];

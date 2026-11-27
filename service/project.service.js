@@ -6,7 +6,8 @@ import * as store from './store.service.js';
 import * as auth from './auth.service.js';
 import * as master from './master.service.js';
 import * as clients from './client.service.js';
-import { today, dateLabel } from './format.service.js';
+import { today, dateLabel, dateTimeLabel, toISODate } from './format.service.js';
+import * as sla from './sla.service.js';
 
 /** Label tiap field (dipakai form, tabel, export, & history). */
 export const FIELDS = {
@@ -35,7 +36,13 @@ export const FIELDS = {
   status: 'Status',
   remark: 'Remark',
   notes: 'Notes',
+  priority: 'Prioritas',
+  reportedAt: 'Waktu Lapor',
+  tempDoneAt: 'Solusi Sementara selesai',
+  permDoneAt: 'Solusi Permanen selesai',
 };
+
+const DATETIME = ['reportedAt', 'tempDoneAt', 'permDoneAt'];
 
 const NUMERIC = ['mandays', 'priceTcv', 'revenue', 'grossProfit'];
 
@@ -84,6 +91,7 @@ function clean(input) {
 const show = (field, v) => {
   if (field === 'clientId') return clients.nameOf(v);
   if (['date', 'startDate', 'target', 'endDate', 'bastDate'].includes(field) && v) return dateLabel(v);
+  if (DATETIME.includes(field) && v) return dateTimeLabel(v);
   return v === '' || v == null ? '-' : String(v);
 };
 
@@ -98,6 +106,38 @@ async function log(projectId, action, changes, note = '') {
   return store.add('history', { projectId, action, changes, note, byEmail: auth.currentUser()?.email || '' });
 }
 
+/**
+ * PRL: hitung batas SLA (sementara & permanen) dari prioritas + SLA client.
+ * Target kosong (atau sama dengan batas SLA lama) ikut = batas SLA permanen.
+ * Bukan PRL: data SLA dikosongkan.
+ */
+function applySla(data, before) {
+  const merged = { ...(before || {}), ...data };
+  if (!sla.applies(merged)) {
+    Object.assign(data, { priority: '', slaTempDue: '', slaPermDue: '' });
+    return;
+  }
+  if (merged.priority && !merged.reportedAt) data.reportedAt = sla.reportedAt(merged);
+  const d = sla.dues({ ...merged, ...data });
+  data.slaTempDue = d.temp;
+  data.slaPermDue = d.perm;
+  const oldDue = before?.slaPermDue ? toISODate(new Date(before.slaPermDue)) : '';
+  if (d.perm && (!merged.target || merged.target === oldDue)) data.target = toISODate(new Date(d.perm));
+}
+
+/** Hitung ulang SLA semua PRL yang belum selesai di satu client (setelah SLA client diubah). */
+export async function recalcSla(clientId) {
+  const rows = list().filter((p) => p.clientId === clientId && sla.applies(p) && p.priority && !master.isClosed(p.status));
+  let n = 0;
+  for (const p of rows) {
+    const d = sla.dues(p);
+    if (d.temp === p.slaTempDue && d.perm === p.slaPermDue) continue;
+    await save(p.id, { ...p }, 'SLA dihitung ulang (setting SLA client berubah)');
+    n++;
+  }
+  return n;
+}
+
 export async function save(id, input, note = '') {
   const data = clean(input);
   if (!data.clientId) throw new Error('Client wajib dipilih');
@@ -105,6 +145,7 @@ export async function save(id, input, note = '') {
   if (!data.type) throw new Error('Tipe wajib dipilih');
   // PRL (dan tipe tanpa biaya lain): tidak ada biaya — Cost/FreeMandays, mandays, TCV, revenue, GP & BAST kosong
   if (master.isNoCost(data.type)) Object.assign(data, { costType: '', mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, bast: '', bastDate: '' });
+  applySla(data, id ? get(id) : null);
 
   if (!id) {
     data.code = data.code || nextCode(data.date || today());
@@ -112,6 +153,7 @@ export async function save(id, input, note = '') {
     data.status = data.status || master.statusNames()[0];
     const row = await store.add('projects', { ...data, members: [], createdBy: auth.currentUser()?.email || '' });
     await log(row.id, 'create', [], note || 'Project dibuat');
+    await sla.syncActivities(row);
     return row;
   }
 
@@ -121,6 +163,7 @@ export async function save(id, input, note = '') {
   if (data.status && master.isClosed(data.status) && !before.endDate && !data.endDate) data.endDate = today();
   const row = await store.update('projects', id, data);
   if (changes.length || note) await log(id, changes.some((c) => c.field === 'status') ? 'status' : 'update', changes, note);
+  await sla.syncActivities(row);
   return row;
 }
 

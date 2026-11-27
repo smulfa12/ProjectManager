@@ -9,7 +9,8 @@ import * as members from '../../service/member.service.js';
 import { esc, pageHeader, tabs, bindTabs, badge, emptyState, options, toast, attempt, progressBar, openModal, confirmDialog } from '../../service/ui.service.js';
 import { rupiah, number, md, dateLabel, dateTimeLabel, daysUntil, diffDays, today } from '../../service/format.service.js';
 import { openProjectForm } from './project-form.js';
-import { jiraLink } from '../shared/project-table.js';
+import { jiraLink, priorityBadge } from '../shared/project-table.js';
+import * as sla from '../../service/sla.service.js';
 import { openActivityForm } from '../activity/activity-form.js';
 import { ganttChart, autoRange } from '../shared/gantt.js';
 
@@ -68,6 +69,19 @@ function tabData(p) {
         ])}
       </section>
     </div>
+    ${sla.applies(p) ? (() => {
+      const st = sla.status(p);
+      const r = p.priority ? sla.rule(p.clientId, p.priority) : null;
+      const row = (label, due, done, s, rr) => `<tr><td><b>${label}</b></td><td>${rr ? sla.ruleLabel(rr) : '-'}</td><td>${due ? dateTimeLabel(due) : '-'}</td><td>${done ? dateTimeLabel(done) : '-'}</td><td>${badge(s.label, s.tone)}</td></tr>`;
+      return `
+    <section class="card">
+      <div class="card__head"><h3>🚨 Prioritas & SLA</h3><span>${priorityBadge(p)} <span class="muted small">lapor ${p.reportedAt ? dateTimeLabel(p.reportedAt) : '-'}</span></span></div>
+      ${p.priority ? `<table class="table table--compact">
+        <thead><tr><th>SLA</th><th>Ketentuan</th><th>Batas</th><th>Selesai</th><th>Status</th></tr></thead>
+        <tbody>${row('Solusi Sementara', p.slaTempDue, p.tempDoneAt, st.temp, r?.temp)}${row('Solusi Permanen', p.slaPermDue, p.permDoneAt, st.perm, r?.perm)}</tbody>
+      </table>` : '<p class="muted small">Prioritas belum diisi — edit project untuk menghitung SLA.</p>'}
+    </section>`;
+    })() : ''}
     <section class="card">
       ${dl([
         [F.outstanding, esc(p.outstanding)],

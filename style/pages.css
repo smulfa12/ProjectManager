@@ -162,3 +162,13 @@
 .meeting-target:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
 .meeting-project { min-width: 260px; max-width: 360px; }
 .meeting-title { margin-top: 2px; white-space: normal; word-break: break-word; line-height: 1.35; }
+.sla-cell { display: flex; gap: 6px; align-items: center; }
+.sla-cell .input.num { width: 80px; min-width: 0; }
+.sla-cell select { min-width: 130px; }
+
+/* ===== Laporan ===== */
+.report-presets { margin-bottom: 8px; }
+.report-card { display: flex; flex-direction: column; gap: 6px; }
+.report-card h3 { margin: 0; }
+.report-card .btn { align-self: flex-start; margin-top: auto; }
+.report-card__icon { font-size: 28px; }
