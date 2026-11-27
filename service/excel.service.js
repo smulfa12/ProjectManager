@@ -83,3 +83,21 @@ export function addSheet(wb, name, rows, opts = {}) {
 export function download(wb, filename) {
   X.writeFile(wb, filename, { compression: true });
 }
+
+/**
+ * Baca file Excel (.xlsx/.xls) atau CSV (pemisah ; , atau tab).
+ * Hasil: [{ name, rows: [[nilai sel, ...], ...] }] — sel tanggal menjadi Date.
+ */
+export async function readFile(file) {
+  X = await load();
+  let wb;
+  if (/\.(csv|txt)$/i.test(file.name)) {
+    const text = (await file.text()).replace(/^\uFEFF/, '');
+    const first = text.split(/\r?\n/)[0] || '';
+    const FS = [';', '\t', ','].sort((a, b) => first.split(b).length - first.split(a).length)[0];
+    wb = X.read(text, { type: 'string', FS, cellDates: true, raw: false });
+  } else {
+    wb = X.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+  }
+  return wb.SheetNames.map((name) => ({ name, rows: X.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: '' }) }));
+}

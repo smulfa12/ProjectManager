@@ -67,17 +67,24 @@ export default {
         </section>
       </div>
 
-      <div class="grid grid--2">
+      <div>
         <section class="card">
-          <div class="card__head"><h3>👥 User yang meng-handle</h3>${auth.isAdmin() ? '<a class="small" href="#/settings?tab=users">Atur →</a>' : ''}</div>
-          <ul class="member-load">
-            ${handlers.map((h) => `<li>${members.avatar(h, 30)}<div class="grow"><b>${esc(h.name)}</b><div class="muted small">${esc(h.position || h.team || '')} · ${esc(h.email || '-')}</div></div></li>`).join('') || '<li class="muted small">Belum ada user.</li>'}
-          </ul>
-          <h3 class="mt">👤 PIC Bank</h3>
-          ${clients.pics(c.id).length
-            ? `<ul class="member-load">${clients.pics(c.id).map((x) => `<li><span class="avatar" style="--size:30px;--hue:200">${esc(x.name.slice(0, 1).toUpperCase())}</span><div class="grow"><b>${esc(x.name)}</b><div class="muted small">${esc([x.position, x.email, x.phone].filter(Boolean).join(' · ') || '-')}</div></div></li>`).join('')}</ul>`
-            : `<p class="muted small">Belum ada PIC Bank${auth.isAdmin() ? ' — tambahkan lewat ✏️ Edit' : ''}.</p>`}
-          ${c.notes ? `<p class="small">${esc(c.notes)}</p>` : ''}
+          <div class="card__head"><h3>👥 PIC</h3>${auth.isAdmin() ? '<span class="small"><a href="#/settings?tab=users">Atur PIC MLPT</a> · <a href="#" data-edit-pic>Atur PIC Bank</a></span>' : ''}</div>
+          <div class="pic-cols">
+            <div>
+              <h4 class="pic-cols__title">PIC MLPT (yang handle)</h4>
+              <ul class="member-load">
+                ${handlers.map((h) => `<li>${members.avatar(h, 28)}<div class="grow"><b>${esc(h.name)}</b><div class="muted small">${esc([h.position || h.team, h.email].filter(Boolean).join(' · ') || '-')}</div></div></li>`).join('') || '<li class="muted small">Belum ada user.</li>'}
+              </ul>
+            </div>
+            <div>
+              <h4 class="pic-cols__title">PIC Bank</h4>
+              ${clients.pics(c.id).length
+                ? `<ul class="member-load">${clients.pics(c.id).map((x) => `<li><span class="avatar" style="--size:28px;--hue:200">${esc(x.name.slice(0, 1).toUpperCase())}</span><div class="grow"><b>${esc(x.name)}</b><div class="muted small">${esc([x.position, x.email, x.phone].filter(Boolean).join(' · ') || '-')}</div></div></li>`).join('')}</ul>`
+                : `<p class="muted small">Belum ada PIC Bank${auth.isAdmin() ? ' — tambahkan lewat ✏️ Edit' : ''}.</p>`}
+            </div>
+          </div>
+          ${c.notes ? `<p class="small mt">${esc(c.notes)}</p>` : ''}
         </section>
       </div>
 
@@ -109,6 +116,10 @@ export default {
         ${all.length ? projectTable(all, { sortKey: 'date', sortDir: -1 }) : '<p class="muted small pad">Belum ada project.</p>'}
       </section>`;
 
+    el.querySelector('[data-edit-pic]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      el.querySelector('[data-edit]')?.click();
+    });
     el.querySelector('[data-edit]')?.addEventListener('click', () => openClientForm({ id: c.id, onSaved: () => navigate(`/client/detail?id=${c.id}&r=${Date.now()}`) }));
     el.querySelector('[data-del]')?.addEventListener('click', async () => {
       if (!(await confirmDialog(`Hapus client ${c.name}?`, { okText: 'Hapus', danger: true }))) return;
