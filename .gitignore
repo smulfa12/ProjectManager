@@ -1,0 +1,5 @@
+
+# Data internal (export / import dari tracker) jangan di-commit ke repo publik
+*import*.sql
+*.xlsx
+*.csv

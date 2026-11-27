@@ -58,7 +58,7 @@ export function nextCode(date = today()) {
 
 /**
  * Hitung otomatis nilai project dari mandays & harga client:
- *  - Price TCV   = mandays × price per mandays client  (Free Mandays → 0)
+ *  - Price TCV   = mandays × price per mandays client  (hanya tipe Cost; Free Mandays / Waived → 0)
  *  - Revenue     = Price TCV
  *  - Gross Profit= Revenue − mandays × biaya internal per mandays (Setting)
  */
@@ -67,7 +67,7 @@ export function calculate({ clientId, mandays, costType }) {
   const md = Number(mandays) || 0;
   const rate = Number(client?.pricePerMandays) || 0;
   const cost = md * (Number(master.finance().costPerMandays) || 0);
-  const priceTcv = costType === 'Free Mandays' ? 0 : md * rate;
+  const priceTcv = costType === 'Cost' ? md * rate : 0;
   return { priceTcv, revenue: priceTcv, grossProfit: priceTcv - cost, rate, cost };
 }
 
@@ -77,7 +77,7 @@ function clean(input) {
     if (!(k in input)) return;
     out[k] = NUMERIC.includes(k) ? Number(input[k]) || 0 : String(input[k] ?? '').trim();
   });
-  if ('costType' in out && !master.COST_TYPES.includes(out.costType)) out.costType = 'Cost';
+  if (out.costType && !master.COST_TYPES.includes(out.costType)) out.costType = 'Cost';
   return out;
 }
 
@@ -153,6 +153,8 @@ export function summary(rows) {
     priceTcv: sum('priceTcv'),
     revenue: sum('revenue'),
     grossProfit: sum('grossProfit'),
+    // mandays per kategori: Cost (berbayar), Free Mandays, Waived
+    mandaysByCost: Object.fromEntries(['Cost', 'Free Mandays', 'Waived'].map((k) => [k, rows.filter((p) => p.costType === k).reduce((s, p) => s + (Number(p.mandays) || 0), 0)])),
   };
 }
 

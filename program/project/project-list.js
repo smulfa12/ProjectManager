@@ -10,14 +10,14 @@ import * as auth from '../../service/auth.service.js';
 import { downloadCSV } from '../../service/export.service.js';
 import { esc, pageHeader, options, emptyState, confirmDialog, attempt } from '../../service/ui.service.js';
 import { today } from '../../service/format.service.js';
-import { projectTable, bindSort, csvColumns } from '../shared/project-table.js';
-import { openProjectForm } from './project-form.js';
+import { projectTable, bindSort, csvColumns, sortRows } from '../shared/project-table.js';
+import { openProjectForm, rememberOrder } from './project-form.js';
 
 export default {
   path: '/project',
   title: 'List Project',
   render(el, params) {
-    const state = { q: params.q || '', clientId: params.client || '', status: params.status || '_open', sortKey: 'date', sortDir: -1 };
+    const state = { q: params.q || '', clientId: params.client || '', status: params.status || '_open', costType: params.cost || '', sortKey: 'date', sortDir: -1 };
     const canCreate = clients.list({ includeInactive: false }).length > 0;
 
     el.innerHTML = `
@@ -30,6 +30,7 @@ export default {
       <div class="toolbar">
         <input class="input input--search" data-q placeholder="Cari project…" value="${esc(state.q)}" />
         <select class="input input--sm" data-client>${options(clients.list(), state.clientId, { valueKey: 'id', labelKey: 'name', empty: 'Semua client' })}</select>
+        <select class="input input--sm" data-cost>${options(master.COST_TYPES, state.costType, { empty: 'Semua kategori biaya' })}</select>
         <div class="chips" data-status>
           ${[['_open', 'Belum selesai'], ['', 'Semua'], ...master.statusNames().map((s) => [s, s])]
             .map(([k, l]) => `<button class="chip ${k === state.status ? 'chip--on' : ''}" data-s="${esc(k)}">${esc(l)}</button>`)
@@ -46,8 +47,11 @@ export default {
         .list()
         .filter((p) => projects.matches(p, state.q))
         .filter((p) => !state.clientId || p.clientId === state.clientId)
+        .filter((p) => !state.costType || p.costType === state.costType)
         .filter((p) => (state.status === '_open' ? !master.isClosed(p.status) : !state.status || p.status === state.status));
 
+      const order = sortRows(rows, state.sortKey, state.sortDir).map((p) => p.id);
+      rememberOrder(order);
       listEl.innerHTML = rows.length
         ? `<div class="card card--flush">${projectTable(rows, {
             sortKey: state.sortKey,
@@ -60,7 +64,7 @@ export default {
         : emptyState('📁', 'Belum ada project', canCreate ? 'Klik "+ Project Baru" untuk menambah.' : 'Tambahkan client dulu di menu Monitoring Client.');
 
       bindSort(listEl, state, draw);
-      listEl.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openProjectForm({ id: b.dataset.edit, onSaved: draw })));
+      listEl.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openProjectForm({ id: b.dataset.edit, onSaved: draw, ids: order })));
       listEl.querySelectorAll('[data-del]').forEach(
         (b) =>
           (b.onclick = async () => {
@@ -74,6 +78,7 @@ export default {
 
     el.querySelector('[data-q]').addEventListener('input', (e) => ((state.q = e.target.value), draw()));
     el.querySelector('[data-client]').addEventListener('change', (e) => ((state.clientId = e.target.value), draw()));
+    el.querySelector('[data-cost]').addEventListener('change', (e) => ((state.costType = e.target.value), draw()));
     el.querySelectorAll('[data-s]').forEach((b) =>
       b.addEventListener('click', () => {
         state.status = b.dataset.s;
