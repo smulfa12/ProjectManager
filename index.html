@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1e293b" />
+    <meta name="description" content="Project Manager — workload, project, activity member & monitoring client." />
+    <title>Project Manager</title>
+
+    <link rel="icon" href="style/assets/icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="style/theme.css" />
+    <link rel="stylesheet" href="style/base.css" />
+    <link rel="stylesheet" href="style/layout.css" />
+    <link rel="stylesheet" href="style/components.css" />
+    <link rel="stylesheet" href="style/pages.css" />
+  </head>
+  <body class="booting">
+    <aside class="sidebar" aria-label="Menu utama">
+      <div class="brand">
+        <img src="style/assets/icon.svg" alt="" width="32" height="32" />
+        <div><b>Project Manager</b><small>Workload & Activity</small></div>
+      </div>
+      <nav class="nav" data-nav></nav>
+      <div class="userbox" data-user></div>
+    </aside>
+    <div class="nav-backdrop" data-nav-backdrop></div>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="btn btn--icon btn--ghost" data-menu-toggle aria-label="Buka menu">☰</button>
+        <b>Project Manager</b>
+      </header>
+      <main id="app" class="app"><div class="boot">Memuat…</div></main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
