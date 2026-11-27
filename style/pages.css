@@ -141,3 +141,18 @@
 .chart__bar:hover { opacity: 0.8; }
 .growth--up { color: var(--green); }
 .growth--down { color: var(--red); }
+
+/* ===== Weekly Meeting ===== */
+.meeting-bar { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: flex-end; padding-bottom: 4px; }
+.meeting-bar .field { margin-bottom: 8px; }
+.meeting-bar .check { margin-bottom: 14px; }
+.meeting-progress { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+.meeting-progress .util { width: 220px; }
+.meeting-table td { vertical-align: top; }
+.meeting-group td { background: var(--surface-2); font-weight: 700; padding: 6px 12px; }
+.meeting-note { min-height: 34px; resize: vertical; overflow: hidden; }
+.meeting-table tr.is-dirty td { background: #fffbeb; }
+.meeting-table tr.is-done td:first-child { box-shadow: inset 3px 0 0 var(--green); }
+.minutes-text { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+.meeting-search { flex: 1; min-width: 200px; }
+.meeting-search .input--sm { width: 100%; }

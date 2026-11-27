@@ -61,15 +61,16 @@ export default {
     const listEl = el.querySelector('[data-list]');
     let rows = [];
 
+    let base = []; // hasil semua filter KECUALI status (untuk angka di chip status)
     const draw = () => {
-      rows = projects
+      base = projects
         .list()
         .filter((p) => projects.matches(p, state.q))
         .filter((p) => !state.clientId || p.clientId === state.clientId)
         .filter((p) => !state.costType || p.costType === state.costType)
         .filter((p) => !state.type || p.type === state.type)
-        .filter((p) => !state.ticket || projects.ticketKind(p) === state.ticket)
-        .filter((p) => !state.statuses.length || state.statuses.includes(p.status));
+        .filter((p) => !state.ticket || projects.ticketKind(p) === state.ticket);
+      rows = base.filter((p) => !state.statuses.length || state.statuses.includes(p.status));
       try {
         sessionStorage.setItem(FILTER_KEY, JSON.stringify(state));
       } catch { /* abaikan */ }
@@ -110,10 +111,10 @@ export default {
       const box = el.querySelector('[data-status]');
       const all = master.statusNames();
       const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
-      const count = (name) => projects.list().filter((p) => p.status === name).length;
+      const count = (name) => base.filter((p) => p.status === name).length;
       box.innerHTML = `
-        <button class="chip ${sameSet(state.statuses, openStatuses()) ? 'chip--on' : ''}" data-preset="open">Belum selesai</button>
-        <button class="chip ${!state.statuses.length ? 'chip--on' : ''}" data-preset="all">Semua</button>
+        <button class="chip ${sameSet(state.statuses, openStatuses()) ? 'chip--on' : ''}" data-preset="open">Belum selesai <small>${base.filter((p) => openStatuses().includes(p.status)).length}</small></button>
+        <button class="chip ${!state.statuses.length ? 'chip--on' : ''}" data-preset="all">Semua <small>${base.length}</small></button>
         <span class="chips__sep"></span>
         ${all
           .map((s) => `<button class="chip chip--check ${state.statuses.includes(s) ? 'chip--on' : ''}" data-s="${esc(s)}">${state.statuses.includes(s) ? '✓ ' : ''}${esc(s)} <small>${count(s)}</small></button>`)

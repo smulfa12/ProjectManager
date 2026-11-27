@@ -20,6 +20,8 @@ import inquiry from './program/inquiry/inquiry.js';
 // 3. List Project (Data Project, Timeline, Member Assignment, History)
 import projectList from './program/project/project-list.js';
 import projectDetail from './program/project/project-detail.js';
+// Weekly Meeting (isi history cepat)
+import meeting from './program/meeting/meeting.js';
 // 4. List Activity Member (Gantt & Kanban)
 import activityBoard from './program/activity/activity-board.js';
 // 5. Monitoring Client (price & free mandays)
@@ -32,7 +34,7 @@ import reminder from './program/reminder/reminder.js';
 // 7. Setting
 import settings from './program/settings/settings.js';
 
-const MODULES = [login, dashboard, inquiry, projectList, projectDetail, activityBoard, clientMonitoring, clientDetail, trend, reminder, settings];
+const MODULES = [login, dashboard, inquiry, projectList, projectDetail, meeting, activityBoard, clientMonitoring, clientDetail, trend, reminder, settings];
 
 setupShell();
 
