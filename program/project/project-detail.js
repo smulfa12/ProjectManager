@@ -9,6 +9,7 @@ import * as members from '../../service/member.service.js';
 import { esc, pageHeader, tabs, bindTabs, badge, emptyState, options, toast, attempt, progressBar, openModal, confirmDialog } from '../../service/ui.service.js';
 import { rupiah, number, md, dateLabel, dateTimeLabel, daysUntil, diffDays, today } from '../../service/format.service.js';
 import { openProjectForm } from './project-form.js';
+import { jiraLink } from '../shared/project-table.js';
 import { openActivityForm } from '../activity/activity-form.js';
 import { ganttChart, autoRange } from '../shared/gantt.js';
 
@@ -38,7 +39,7 @@ function tabData(p) {
           [F.type, esc(p.type)],
           [F.clientId, c ? `<a href="#/client/detail?id=${esc(c.id)}">${esc(c.code)} — ${esc(c.name)}</a>` : '-'],
           [F.module, esc(p.module)],
-          [F.jiraNo, esc(p.jiraNo)],
+          [F.jiraNo, jiraLink(p)],
           [F.crNo, esc(p.crNo)],
           [F.date, dateLabel(p.date)],
         ])}

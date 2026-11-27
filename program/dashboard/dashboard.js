@@ -15,7 +15,14 @@ import { number, md, rupiahShort, pct, dateLabel } from '../../service/format.se
 const utilTone = (u) => (u > 100 ? 'red' : u >= 75 ? 'amber' : u > 0 ? 'green' : 'gray');
 
 function render(el, state) {
-  const data = workload.build(state);
+  let data = workload.build(state);
+  // pilihan Tim hanya tim yang terkait client yang di-handle / dipilih
+  if (state.team && !data.teams.includes(state.team)) {
+    state.team = '';
+    data = workload.build(state);
+  }
+  const teamSel = el.querySelector('[data-team]');
+  teamSel.innerHTML = options(data.teams, state.team, { empty: 'Semua tim' });
   const s = data.summary;
   const box = el.querySelector('[data-body]');
 
@@ -136,7 +143,7 @@ export default {
   path: '/',
   title: 'Dashboard Workload',
   render(el) {
-    const state = { from: '', to: '', clientId: '', type: '' };
+    const state = { from: '', to: '', clientId: '', type: '', team: '' };
     el.innerHTML = `
       ${pageHeader({ title: 'Dashboard Workload', subtitle: 'Beban kerja per client, tipe tiket, dan tim', icon: '📊' })}
       <div class="toolbar">
@@ -144,12 +151,14 @@ export default {
         <div class="toolbar__right">
           <select class="input input--sm" data-client>${options(clients.list(), '', { valueKey: 'id', labelKey: 'name', empty: 'Semua client' })}</select>
           <select class="input input--sm" data-type>${options(master.types(), '', { empty: 'Semua tipe' })}</select>
+          <select class="input input--sm" data-team></select>
         </div>
       </div>
       <div data-body></div>`;
     const redraw = () => render(el, state);
     el.querySelector('[data-client]').addEventListener('change', (e) => ((state.clientId = e.target.value), redraw()));
     el.querySelector('[data-type]').addEventListener('change', (e) => ((state.type = e.target.value), redraw()));
+    el.querySelector('[data-team]').addEventListener('change', (e) => ((state.team = e.target.value), redraw()));
     periodFilter(el.querySelector('[data-period]'), (r) => {
       Object.assign(state, r);
       redraw();

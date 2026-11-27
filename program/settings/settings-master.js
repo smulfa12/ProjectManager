@@ -32,6 +32,15 @@ export function renderMaster(el) {
         </section>
 
         <section class="card">
+          <div class="card__head"><h3>🔗 Link Jira</h3></div>
+          <form class="form" data-links>
+            <label class="field"><span>URL dasar tiket (No Jira BV- ditambahkan di belakang)</span><input class="input" name="jiraUrl" value="${esc(master.links().jiraUrl)}" /></label>
+            <p class="muted small">Contoh: No Jira <b>BV-4994</b> → ${esc(master.links().jiraUrl.replace(/\/?$/, '/'))}BV-4994. Tiket Channel / lainnya tidak diberi link.</p>
+            <div class="form-actions"><button class="btn btn--primary btn--sm">Simpan</button></div>
+          </form>
+        </section>
+
+        <section class="card">
           <div class="card__head"><h3>🚦 Status Project</h3><button class="btn btn--ghost btn--sm" data-add-status>+ Status</button></div>
           <table class="table table--compact" data-statuses>
             <thead><tr><th>Nama</th><th>Warna</th><th class="center">Selesai?</th><th></th></tr></thead>
@@ -67,6 +76,14 @@ export function renderMaster(el) {
       e.preventDefault();
       const codePrefix = fin2.codePrefix.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'PRJ';
       await attempt(() => master.save('pm.finance', { costPerMandays: parseNumber(fin2.costPerMandays.value), codePrefix }), 'Disimpan');
+      draw();
+    });
+
+    el.querySelector('[data-links]').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const jiraUrl = e.target.jiraUrl.value.trim();
+      if (jiraUrl && !/^https?:\/\//i.test(jiraUrl)) return toast('URL harus diawali https://', 'error');
+      await attempt(() => master.save('pm.links', { jiraUrl }), 'Link Jira disimpan');
       draw();
     });
 

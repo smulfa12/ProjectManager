@@ -9,6 +9,7 @@ import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import { esc, pageHeader, options, emptyState, badge, toast, openModal } from '../../service/ui.service.js';
 import { today, dateLabel, daysUntil } from '../../service/format.service.js';
+import { jiraLink } from '../shared/project-table.js';
 
 const KEY = 'pm.meeting';
 
@@ -99,7 +100,7 @@ export default {
                   const done = updatedOn(p.id, f.date);
                   return `${head}
                   <tr data-pid="${esc(p.id)}" class="${done ? 'is-done' : ''}">
-                    <td class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener">${esc(p.code)}</a><br><small class="muted">${esc(p.jiraNo || '-')} · ${esc(p.type || '-')}</small></td>
+                    <td class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener">${esc(p.code)}</a><br><small class="muted">${jiraLink(p)} · ${esc(p.type || '-')}</small></td>
                     <td><span class="clamp">${esc(p.title || p.outstanding || '-')}</span></td>
                     <td>${esc(p.picMlpt || '-')}</td>
                     <td class="nowrap ${late ? 'text-red' : ''}">${p.target ? dateLabel(p.target) + (late ? ' ⚠' : '') : '-'}</td>

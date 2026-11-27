@@ -21,6 +21,7 @@ export const DEFAULTS = {
   // tipe tiket yang tidak perlu Mandays, Price TCV, Revenue, Gross Profit & BAST
   'pm.noCostTypes': ['PRL'],
   'pm.finance': { costPerMandays: 1500000, codePrefix: 'PRJ' },
+  'pm.links': { jiraUrl: 'https://bvhelpdesk.atlassian.net/servicedesk/customer/portal/2/' },
   'pm.reminder': { enabled: true, time: '07:30', cc: '', appUrl: '' },
 };
 
@@ -37,6 +38,7 @@ export const noCostTypes = () => get('pm.noCostTypes');
 /** Tipe tiket tanpa biaya & BAST (default: PRL). */
 export const isNoCost = (type) => Boolean(type) && noCostTypes().some((t) => t.toLowerCase() === String(type).toLowerCase());
 export const finance = () => ({ ...DEFAULTS['pm.finance'], ...get('pm.finance') });
+export const links = () => ({ ...DEFAULTS['pm.links'], ...get('pm.links') });
 export const reminder = () => ({ ...DEFAULTS['pm.reminder'], ...get('pm.reminder') });
 
 export const statusOf = (name) => statuses().find((s) => s.name === name) || { name: name || '-', tone: 'gray', closed: false };

@@ -70,7 +70,7 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
             ${field('Tipe *', `<select class="input" name="type" required>${options(master.types(), p.type, { empty: 'Pilih tipe' })}</select>`)}
             ${field('Modul', `<input class="input" name="module" list="pm-modules" value="${esc(p.module || '')}" /><datalist id="pm-modules">${options(master.modules())}</datalist>`)}
             ${field('Date', date('date', p.date))}
-            ${field('No Jira', text('jiraNo', p.jiraNo))}
+            ${field(`No Jira ${projects.jiraUrl(p) ? `<a href="${esc(projects.jiraUrl(p))}" target="_blank" rel="noopener" class="small">buka ↗</a>` : ''}`, text('jiraNo', p.jiraNo))}
             ${field('No CR Client', text('crNo', p.crNo))}
             ${field('Project Outstanding', text('outstanding', p.outstanding), 'span-2')}
           </div>
