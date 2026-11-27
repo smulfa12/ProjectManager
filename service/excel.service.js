@@ -47,9 +47,14 @@ export function toDate(v) {
 /**
  * Tambah sheet. opts.title = baris judul di atas tabel (array teks).
  * opts.widths = lebar kolom manual {judul: lebar}.
+ * opts.only = daftar kolom yang ditampilkan (default semua).
  */
 export function addSheet(wb, name, rows, opts = {}) {
-  const head = rows.length ? Object.keys(rows[0]) : opts.columns || ['Data'];
+  // sheet kosong tetap memakai judul kolom lengkap (kolom yang dipilih)
+  let head = rows.length ? Object.keys(rows[0]) : opts.only || opts.columns || ['Data'];
+  // hanya kolom yang dipilih user (urutan tetap sesuai laporan)
+  if (opts.only) head = head.filter((h) => opts.only.includes(h));
+  if (!head.length) head = [rows.length ? Object.keys(rows[0])[0] : 'Data'];
   const title = opts.title || [];
   const aoa = [...title.map((t) => [t]), ...(title.length ? [[]] : []), head, ...rows.map((r) => head.map((h) => (r[h] === undefined || r[h] === null ? '' : r[h])))];
   const ws = X.utils.aoa_to_sheet(aoa);

@@ -9,8 +9,54 @@ import * as master from '../../service/master.service.js';
 import * as members from '../../service/member.service.js';
 import * as auth from '../../service/auth.service.js';
 import { loadDemo } from '../../service/demo.service.js';
-import { esc, pageHeader, periodFilter, statCard, barList, options, emptyState, progressBar, attempt } from '../../service/ui.service.js';
+import * as followup from '../../service/followup.service.js';
+import { esc, pageHeader, periodFilter, statCard, barList, options, emptyState, progressBar, attempt, badge } from '../../service/ui.service.js';
 import { number, md, rupiahShort, pct, dateLabel } from '../../service/format.service.js';
+
+const FU_LIMIT = 8;
+
+/** Kartu "Perlu Follow Up" untuk user yang login (member dirinya sendiri). */
+function followupCard() {
+  const me = auth.currentMember();
+  if (!me) {
+    return auth.isAdmin()
+      ? `<section class="card fu-card"><div class="card__head"><h2>📌 Perlu Follow Up</h2></div>
+          <p class="muted small">Akun Anda belum terdaftar sebagai user di Setting → User & Client, jadi daftar follow up pribadi belum bisa ditampilkan.</p></section>`
+      : '';
+  }
+  const items = followup.forMember(me);
+  let expanded = false;
+  try {
+    expanded = sessionStorage.getItem('pm.fu.all') === '1';
+  } catch { /* abaikan */ }
+  const shown = expanded ? items : items.slice(0, FU_LIMIT);
+  const urgent = items.filter((i) => i.severity <= 1).length;
+  return `
+    <section class="card fu-card">
+      <div class="card__head">
+        <h2>📌 Perlu Follow Up — ${esc(me.name)}</h2>
+        <span class="small">${items.length ? `<b>${items.length}</b> pekerjaan${urgent ? ` · <span class="text-red">${urgent} mendesak</span>` : ''}` : ''}</span>
+      </div>
+      ${items.length
+        ? `<div class="table-wrap"><table class="table table--compact table--hover fu-table">
+            <thead><tr><th></th><th>Pekerjaan</th><th>Client</th><th>Status</th><th>Perlu follow up</th><th></th></tr></thead>
+            <tbody>${shown
+              .map(
+                (i) => `<tr>
+                <td><span class="dot tone-${i.severity <= 1 ? 'red' : i.severity <= 2 ? 'amber' : 'gray'}"></span></td>
+                <td><b>${esc(i.code)}</b>${i.jira ? ` <small class="muted">${esc(i.jira)}</small>` : ''}${i.kind === 'activity' ? ' <small class="badge tone-teal">activity</small>' : ''}<div class="fu-title">${esc(i.title)}</div></td>
+                <td class="small">${esc(i.client)}</td>
+                <td class="small nowrap">${esc(i.status || '')}</td>
+                <td>${i.reasons.map((r) => badge(r.text, r.tone)).join(' ')}</td>
+                <td class="actions"><a class="btn btn--ghost btn--sm" href="${esc(i.href)}">Buka</a></td>
+              </tr>`
+              )
+              .join('')}</tbody>
+          </table></div>
+          ${items.length > FU_LIMIT ? `<div class="form-actions"><button class="btn btn--ghost btn--sm" data-fu-toggle>${expanded ? 'Tampilkan lebih sedikit' : `Tampilkan semua (${items.length})`}</button></div>` : ''}`
+        : '<p class="muted small">🎉 Tidak ada pekerjaan yang perlu di-follow up saat ini.</p>'}
+    </section>`;
+}
 
 const utilTone = (u) => (u > 100 ? 'red' : u >= 75 ? 'amber' : u > 0 ? 'green' : 'gray');
 
@@ -40,6 +86,7 @@ function render(el, state) {
   }
 
   box.innerHTML = `
+    ${followupCard()}
     <div class="stats">
       ${statCard({ label: 'Total Project', value: number(s.count), hint: `${number(s.open)} open · <span class="text-red">${number(s.overdue)} lewat target</span>`, tone: 'blue', icon: '📁' })}
       ${statCard({ label: 'Total Mandays', value: md(s.mandays), hint: `Cost ${number(s.mandaysByCost.Cost)} · Free ${number(s.mandaysByCost['Free Mandays'])} · Waived ${number(s.mandaysByCost.Waived)}`, tone: 'purple', icon: '⏱️' })}
@@ -139,6 +186,12 @@ function render(el, state) {
         </ul>
       </section>
     </div>`;
+  box.querySelector('[data-fu-toggle]')?.addEventListener('click', () => {
+    try {
+      sessionStorage.setItem('pm.fu.all', sessionStorage.getItem('pm.fu.all') === '1' ? '0' : '1');
+    } catch { /* abaikan */ }
+    render(el, state);
+  });
 }
 
 export default {

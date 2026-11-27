@@ -6,10 +6,99 @@
  */
 import * as report from '../../service/report.service.js';
 import * as clients from '../../service/client.service.js';
-import { pageHeader, options, toast, esc } from '../../service/ui.service.js';
+import { pageHeader, options, toast, esc, openModal } from '../../service/ui.service.js';
 import { number, periodRange } from '../../service/format.service.js';
 
 const KEY = 'pm.report';
+const COLS_KEY = (kind) => `pm.report.cols.${kind}`;
+
+/** Pilihan sheet & kolom tersimpan di browser ini: { [sheet]: false | string[] } */
+function loadChoice(kind) {
+  try {
+    return JSON.parse(localStorage.getItem(COLS_KEY(kind))) || {};
+  } catch {
+    return {};
+  }
+}
+function saveChoice(kind, choice) {
+  try {
+    localStorage.setItem(COLS_KEY(kind), JSON.stringify(choice));
+  } catch { /* abaikan */ }
+}
+
+/** Ringkasan pilihan, mis. "4 sheet · 52 dari 80 kolom". */
+function choiceSummary(kind) {
+  const choice = loadChoice(kind);
+  const list = report.sheets(kind);
+  const on = list.filter((sh) => choice[sh.name] !== false);
+  const total = on.reduce((s, sh) => s + sh.columns.length, 0);
+  const picked = on.reduce((s, sh) => s + (Array.isArray(choice[sh.name]) ? sh.columns.filter((c) => sh.key.includes(c) || choice[sh.name].includes(c)).length : sh.columns.length), 0);
+  return `${on.length} dari ${list.length} sheet · ${picked === total ? 'semua kolom' : `${picked} dari ${total} kolom`}`;
+}
+
+/** Jendela pilih sheet & kolom. */
+function openColumnPicker(kind, title, onDone) {
+  const list = report.sheets(kind);
+  const choice = loadChoice(kind);
+  const modal = openModal({
+    title: `Pilih kolom — ${title}`,
+    wide: true,
+    body: `
+      <p class="muted small">Centang sheet & kolom yang ingin dimasukkan ke Excel. Kolom kunci (🔒) selalu ikut. Pilihan tersimpan di browser ini.</p>
+      <div class="col-picker">
+        ${list
+          .map((sh, si) => {
+            const sel = Array.isArray(choice[sh.name]) ? choice[sh.name] : sh.columns;
+            return `
+            <fieldset class="col-sheet" data-sheet="${si}">
+              <legend><label class="check"><input type="checkbox" data-sheet-on ${choice[sh.name] !== false ? 'checked' : ''} /> <b>${esc(sh.name)}</b></label>
+                <span class="col-sheet__tools"><button type="button" class="btn btn--ghost btn--sm" data-all>Semua</button><button type="button" class="btn btn--ghost btn--sm" data-none>Kosongkan</button></span></legend>
+              <div class="check-grid col-grid">
+                ${sh.columns
+                  .map((c) => {
+                    const locked = sh.key.includes(c);
+                    return `<label class="check small"><input type="checkbox" data-col="${esc(c)}" ${locked || sel.includes(c) ? 'checked' : ''} ${locked ? 'disabled' : ''} /> ${locked ? '🔒 ' : ''}${esc(c)}</label>`;
+                  })
+                  .join('')}
+              </div>
+            </fieldset>`;
+          })
+          .join('')}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--ghost mr-auto" data-reset>Kembalikan semua kolom</button>
+        <button class="btn btn--ghost" data-cancel>Batal</button>
+        <button class="btn btn--primary" data-save>Simpan pilihan</button>
+      </div>`,
+  });
+  const el = modal.el;
+  const sync = (fs) => fs.classList.toggle('is-off', !fs.querySelector('[data-sheet-on]').checked);
+  el.querySelectorAll('.col-sheet').forEach((fs) => {
+    sync(fs);
+    fs.querySelector('[data-sheet-on]').addEventListener('change', () => sync(fs));
+    fs.querySelector('[data-all]').onclick = () => fs.querySelectorAll('[data-col]:not(:disabled)').forEach((c) => (c.checked = true));
+    fs.querySelector('[data-none]').onclick = () => fs.querySelectorAll('[data-col]:not(:disabled)').forEach((c) => (c.checked = false));
+  });
+  el.querySelector('[data-cancel]').onclick = modal.close;
+  el.querySelector('[data-reset]').onclick = () => {
+    saveChoice(kind, {});
+    modal.close();
+    onDone();
+  };
+  el.querySelector('[data-save]').onclick = () => {
+    const next = {};
+    el.querySelectorAll('.col-sheet').forEach((fs) => {
+      const sh = list[Number(fs.dataset.sheet)];
+      if (!fs.querySelector('[data-sheet-on]').checked) return (next[sh.name] = false);
+      const cols = [...fs.querySelectorAll('[data-col]:checked')].map((c) => c.dataset.col);
+      if (cols.length < sh.columns.length) next[sh.name] = cols;
+    });
+    if (list.every((sh) => next[sh.name] === false)) return toast('Pilih minimal satu sheet', 'error');
+    saveChoice(kind, next);
+    modal.close();
+    onDone();
+  };
+}
 
 export default {
   path: '/report',
@@ -41,14 +130,16 @@ export default {
           <h3>Laporan Progress Project & PRL</h3>
           <p class="muted small">Sheet: Ringkasan per client · Per Status · Project & CR (target, status, progress, mandays, TCV, BAST, update terakhir) · PRL (prioritas & SLA) · History Update.</p>
           <p class="small" data-count-progress></p>
-          <button class="btn btn--primary" data-dl="progress">⬇ Download Excel</button>
+          <p class="small muted">📋 <span data-cols="progress"></span></p>
+          <div class="row gap-sm"><button class="btn btn--primary" data-dl="progress">⬇ Download Excel</button><button class="btn btn--ghost" data-pick="progress">⚙️ Pilih kolom</button></div>
         </section>
         <section class="card report-card">
           <div class="report-card__icon">⏱️</div>
           <h3>Laporan SLA</h3>
           <p class="muted small">Sheet: Ringkasan SLA per client × prioritas (tercapai, terlambat, lewat SLA, % tercapai) untuk solusi sementara & permanen · Detail SLA per PRL · Ketentuan SLA.</p>
           <p class="small" data-count-sla></p>
-          <button class="btn btn--primary" data-dl="sla">⬇ Download Excel</button>
+          <p class="small muted">📋 <span data-cols="sla"></span></p>
+          <div class="row gap-sm"><button class="btn btn--primary" data-dl="sla">⬇ Download Excel</button><button class="btn btn--ghost" data-pick="sla">⚙️ Pilih kolom</button></div>
         </section>
       </div>`;
 
@@ -75,7 +166,8 @@ export default {
         btn.disabled = true;
         btn.textContent = 'Membuat file…';
         try {
-          const res = btn.dataset.dl === 'progress' ? await report.progressReport({ ...f }) : await report.slaReport({ ...f });
+          const kind = btn.dataset.dl;
+          const res = kind === 'progress' ? await report.progressReport({ ...f }, loadChoice(kind)) : await report.slaReport({ ...f }, loadChoice(kind));
           toast(btn.dataset.dl === 'progress' ? `Laporan dibuat: ${res.cr} project/CR, ${res.prl} PRL` : `Laporan SLA dibuat: ${res.prl} PRL`);
         } catch (err) {
           console.error(err);
@@ -85,6 +177,11 @@ export default {
         btn.textContent = label;
       })
     );
+    const showCols = () => el.querySelectorAll('[data-cols]').forEach((s) => (s.textContent = choiceSummary(s.dataset.cols)));
+    el.querySelectorAll('[data-pick]').forEach((b) =>
+      b.addEventListener('click', () => openColumnPicker(b.dataset.pick, b.dataset.pick === 'progress' ? 'Laporan Progress Project & PRL' : 'Laporan SLA', showCols))
+    );
+    showCols();
     refresh();
   },
 };
