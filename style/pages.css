@@ -215,3 +215,4 @@
 .sdlc-table td:nth-child(3) { width: 140px; }
 .sdlc-table td:nth-child(4) { width: 220px; }
 .sdlc-no { color: var(--muted); width: 24px; }
+.sdlc-step.is-backlog { opacity: 0.75; }

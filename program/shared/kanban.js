@@ -18,7 +18,7 @@ function card(a, meta) {
     <article class="kcard ${late ? 'kcard--late' : ''}" draggable="true" data-id="${esc(a.id)}">
       <div class="kcard__top">${badge(pr.label, pr.tone)}<span class="muted small">${meta ? meta(a) : ''}</span></div>
       <h4>${esc(a.title)}</h4>
-      ${a.status !== 'todo' ? progressBar(a.progress, a.status === 'done' ? 'green' : 'blue') : ''}
+      ${!['todo', 'backlog'].includes(a.status) ? progressBar(a.progress, a.status === 'done' ? 'green' : 'blue') : ''}
       <div class="kcard__foot">
         ${members.avatar(members.get(a.memberId), 24)}
         <span class="small">${due}</span>

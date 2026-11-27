@@ -91,12 +91,19 @@ export function plan(p) {
   });
 }
 
+/** Durasi step (hari kerja): durasi rencana yang sudah ada (menghargai edit manual), atau dari setting. */
+const durationOf = (a, s) => (a?.planStart && a?.planEnd ? workDays(a.planStart, a.planEnd) : 0) || Number(s.days) || 1;
+
 /**
  * Buat / sinkron activity step SDLC.
- *  reset=false: step yang sudah ada tetap (tanggal & progress tidak diubah), hanya judul/tim disesuaikan;
+ *  reset=false: step yang sudah ada tetap (tanggal & progress tidak diubah), hanya judul disesuaikan;
  *               step yang belum ada dibuat menyambung step sebelumnya.
- *  reset=true : semua tanggal rencana dihitung ulang dari awal (progress & realisasi tetap).
- * Step berlebih (setting dikurangi) dihapus bila belum dikerjakan.
+ *  reset=true : HITUNG ULANG DARI REALISASI —
+ *               step selesai  → jadwal berikutnya mulai sehari kerja setelah tanggal selesai aktual;
+ *               step berjalan → rencana mulai = mulai aktual, durasi tetap;
+ *               step belum dikerjakan → digeser menyambung step sebelumnya, durasi tetap.
+ * Antrian: step pertama yang belum selesai = To Do, step setelahnya = Backlog.
+ * Step yang sudah tidak ada di setting dihapus bila belum dikerjakan.
  */
 export async function generate(p, { reset = false } = {}) {
   const list = steps(category(p));
@@ -104,42 +111,73 @@ export async function generate(p, { reset = false } = {}) {
   const res = { created: 0, updated: 0, removed: 0 };
   let nextNo = existing.reduce((m, a) => Math.max(m, Number(a.id.slice(PREFIX(p.id).length)) || 0), 0) + 1;
   let cursor = startOf(p);
+  let queued = false; // sudah ada step yang menjadi To Do / berjalan?
   for (let i = 0; i < list.length; i++) {
     const s = list[i];
     const before = findStep(existing, s.name);
-    const title = `[${s.name}] ${p.jiraNo || p.code} ${p.title || ''}`.trim();
-    let planStart = nextWorkday(cursor);
-    let planEnd = addWorkdays(planStart, Number(s.days) || 1);
+    const dur = durationOf(before, s);
+    const done = before?.status === 'done';
+    const started = before && (before.actualStart || ['progress', 'review'].includes(before.status));
+    let planStart;
+    let planEnd;
     if (before && !reset) {
-      planStart = before.planStart || planStart;
-      planEnd = before.planEnd || planEnd;
+      planStart = before.planStart || nextWorkday(cursor);
+      planEnd = before.planEnd || addWorkdays(planStart, dur);
+    } else if (done) {
+      planStart = before.planStart;
+      planEnd = before.planEnd;
+    } else if (started && before.actualStart) {
+      planStart = before.actualStart;
+      planEnd = addWorkdays(planStart, dur);
+    } else {
+      planStart = nextWorkday(cursor);
+      planEnd = addWorkdays(planStart, dur);
     }
-    cursor = addDays(planEnd > cursor ? planEnd : cursor, 1);
+    // langkah berikutnya mulai sehari setelah step ini selesai (aktual bila sudah selesai)
+    const endForNext = done && reset ? before.actualEnd || before.planEnd : planEnd;
+    cursor = addDays(endForNext, 1);
+
+    // status antrian
+    let status = before?.status || 'backlog';
+    if (!done) {
+      if (started) queued = true;
+      else if (!queued) {
+        status = 'todo';
+        queued = true;
+      } else if (status === 'todo' && !Number(before?.progress)) status = 'backlog';
+    }
     const data = {
       projectId: p.id,
-      title,
+      title: `[${s.name}] ${p.jiraNo || p.code} ${p.title || ''}`.trim(),
       description: `Step SDLC ${category(p)} ${i + 1}/${list.length}: ${s.name}${s.team ? ' · tim ' + s.team : ''}`,
       planStart,
       planEnd,
       planHours: workDays(planStart, planEnd) * 8,
+      status,
     };
     if (!before) {
-      await store.add('activities', { id: `${PREFIX(p.id)}${nextNo++}`, ...data, memberId: memberFor(p, s), status: 'todo', progress: 0, priority: 'medium', actualStart: '', actualEnd: '' });
+      await store.add('activities', { id: `${PREFIX(p.id)}${nextNo++}`, ...data, memberId: memberFor(p, s), progress: 0, priority: 'medium', actualStart: '', actualEnd: '' });
       res.created++;
     } else if (Object.keys(data).some((k) => String(before[k] ?? '') !== String(data[k] ?? ''))) {
       await store.update('activities', before.id, data);
       res.updated++;
     }
   }
-  // step yang sudah tidak ada di setting: hapus bila belum dikerjakan
   const names = list.map((s) => s.name.toLowerCase());
   for (const a of existing.filter((x) => !names.includes(stepName(x).toLowerCase()))) {
-    if (a.status === 'todo' && !Number(a.progress)) {
+    if (['todo', 'backlog'].includes(a.status) && !Number(a.progress)) {
       await store.remove('activities', a.id);
       res.removed++;
     }
   }
   return res;
+}
+
+/** Setelah satu step selesai: step berikutnya yang masih Backlog naik ke To Do. */
+export async function promoteNext(projectId) {
+  if (!projectId) return;
+  const next = stepActivities(projectId).find((a) => a.status !== 'done');
+  if (next && next.status === 'backlog') await store.update('activities', next.id, { status: 'todo' });
 }
 
 /** Status step: step aktif = step pertama yang belum selesai. */

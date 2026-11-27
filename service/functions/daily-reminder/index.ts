@@ -106,7 +106,8 @@ Deno.serve(async (req) => {
   const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
   const [members, activities, projects, clients, settings] = await Promise.all([
     db.from('pm_members').select('*').eq('active', true),
-    db.from('pm_activities').select('*').neq('status', 'done'),
+    // Backlog belum masuk antrian kerja → tidak diingatkan
+    db.from('pm_activities').select('*').not('status', 'in', '(done,backlog)'),
     db.from('pm_projects').select('id, code, title, client_id'),
     db.from('pm_clients').select('id, name'),
     db.from('pm_settings').select('key, value').eq('key', 'pm.reminder'),
