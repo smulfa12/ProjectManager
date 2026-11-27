@@ -103,7 +103,7 @@ export default {
         ${tabs([['gantt', '📊 Gantt Chart'], ['kanban', '🗂️ Kanban'], ['table', '📋 Tabel']], view)}
         <div class="toolbar__right">
           <input class="input input--sm input--search" data-q placeholder="Cari activity…" />
-          <select class="input input--sm" data-f="memberId">${options(members.list({ includeInactive: false }), f.memberId, { valueKey: 'id', labelKey: 'name', empty: 'Semua member' })}</select>
+          <select class="input input--sm" data-f="memberId">${options(members.visible(), f.memberId, { valueKey: 'id', labelKey: 'name', empty: 'Semua member' })}</select>
           <select class="input input--sm" data-f="clientId">${options(clients.list(), '', { valueKey: 'id', labelKey: 'name', empty: 'Semua client' })}</select>
           <select class="input input--sm" data-f="projectId">${options(projects.list(), f.projectId, { valueKey: 'id', labelKey: (p) => `${p.code} ${p.title || ''}`, empty: 'Semua project' })}</select>
         </div>

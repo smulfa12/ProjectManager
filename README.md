@@ -93,6 +93,12 @@ Project Supabase: **ProjectManager_** (semua tabel berawalan `pm_`).
 | Admin | Semua client, project, activity + menu Setting & ubah harga/free mandays |
 | Project Manager / Member | Hanya client yang dicentang di Setting → User & Client (dijaga di database, bukan hanya disembunyikan) |
 
+Berlaku untuk **Dashboard, Inquiry Project, List Project, Weekly Meeting, Activity Member, Monitoring Client, History Trend & Reminder**:
+- Member lain hanya terlihat bila meng-handle client yang sama; activity internal (tanpa project) hanya terlihat pemiliknya.
+- Reminder: Member hanya melihat miliknya, PM melihat timnya. Hapus project khusus Admin.
+- Admin bisa klik **👁 Lihat sebagai** di Setting → User & Client untuk mengecek tampilan persis seperti user tersebut.
+- Jalankan `service/database/006_akses_client.sql` agar aturan yang sama berlaku di database.
+
 ### Tabel
 | Tabel | Isi |
 |---|---|

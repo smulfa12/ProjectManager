@@ -3,10 +3,10 @@
  * Beban kerja per Client, per Tipe Tiket, dan per Tim / Member.
  */
 import * as workload from '../../service/workload.service.js';
+import * as projects from '../../service/project.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import * as members from '../../service/member.service.js';
-import * as store from '../../service/store.service.js';
 import * as auth from '../../service/auth.service.js';
 import { loadDemo } from '../../service/demo.service.js';
 import { esc, pageHeader, periodFilter, statCard, barList, options, emptyState, progressBar, attempt } from '../../service/ui.service.js';
@@ -19,7 +19,7 @@ function render(el, state) {
   const s = data.summary;
   const box = el.querySelector('[data-body]');
 
-  if (!store.all('projects').length && !store.all('clients').length) {
+  if (!projects.list().length && !clients.list().length) {
     box.innerHTML = emptyState(
       '📊',
       'Belum ada data',

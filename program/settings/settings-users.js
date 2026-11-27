@@ -6,6 +6,7 @@ import * as members from '../../service/member.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
 import * as store from '../../service/store.service.js';
+import * as auth from '../../service/auth.service.js';
 import { esc, openModal, options, toast, formData, confirmDialog, attempt, badge, emptyState } from '../../service/ui.service.js';
 
 function openMemberForm({ id = '', onSaved } = {}) {
@@ -103,7 +104,10 @@ export function renderUsers(el) {
                         : `<td class="center"><input type="checkbox" data-m="${esc(m.id)}" data-c="${esc(c.id)}" ${(m.clientIds || []).includes(c.id) ? 'checked' : ''} /></td>`
                     )
                     .join('')}
-                  <td class="actions"><button class="btn btn--icon btn--ghost btn--sm" data-edit="${esc(m.id)}">✏️</button></td>
+                  <td class="actions">
+                    <button class="btn btn--icon btn--ghost btn--sm" data-viewas="${esc(m.id)}" title="Lihat aplikasi sebagai ${esc(m.name)} (cek akses data)">👁</button>
+                    <button class="btn btn--icon btn--ghost btn--sm" data-edit="${esc(m.id)}" title="Edit">✏️</button>
+                  </td>
                 </tr>`
                 )
                 .join('')}
@@ -113,10 +117,21 @@ export function renderUsers(el) {
         <div class="form-actions"><span class="muted small mr-auto">Centang = user meng-handle client tersebut. ● = admin (semua client).</span><button class="btn btn--primary" data-save-matrix>Simpan parameter client</button></div>`
         : emptyState('👥', 'Belum ada user', 'Tambahkan user / member tim beserta client yang di-handle.')}
       </section>
+      <div class="alert alert--info small">🔒 <b>Akses data per client</b>: selain Admin, user hanya melihat data client yang dicentang —
+        Dashboard, Inquiry Project, List Project, Weekly Meeting, Monitoring Client, Activity Member, History Trend & Reminder.
+        Dibatasi juga di database (Row Level Security). Klik 👁 untuk melihat aplikasi persis seperti user tersebut.</div>
       <p class="muted small">Akun login dibuat di Supabase → Authentication → Users. Email akun harus sama dengan email user di sini.</p>`;
 
     el.querySelector('[data-new]').onclick = () => openMemberForm({ onSaved: draw });
     el.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openMemberForm({ id: b.dataset.edit, onSaved: draw })));
+    // Lihat sebagai user: admin mengecek data apa saja yang terlihat oleh user tsb
+    el.querySelectorAll('[data-viewas]').forEach(
+      (b) =>
+        (b.onclick = () => {
+          auth.setViewAs(b.dataset.viewas);
+          location.hash = '#/';
+        })
+    );
     el.querySelector('[data-save-matrix]')?.addEventListener('click', async () => {
       const next = new Map();
       el.querySelectorAll('[data-m]').forEach((cb) => {

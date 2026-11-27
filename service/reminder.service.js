@@ -11,6 +11,7 @@ import * as activities from './activity.service.js';
 import * as members from './member.service.js';
 import * as master from './master.service.js';
 import { today, dateLabel, workDays } from './format.service.js';
+import * as auth from './auth.service.js';
 
 /** Isi reminder satu member pada tanggal tertentu. */
 export function forMember(member, date = today()) {
@@ -25,8 +26,10 @@ export function forMember(member, date = today()) {
 
 /** Preview untuk semua member aktif yang menerima reminder. */
 export function preview(date = today()) {
-  return members
-    .list({ includeInactive: false })
+  // admin: semua member · PM: member di client yang sama · member: dirinya sendiri
+  const me = auth.currentMember();
+  const scope = auth.isAdmin() || me?.role === 'pm' ? members.visible() : members.visible().filter((m) => m.id === me?.id);
+  return scope
     .filter((m) => m.reminder !== false)
     .map((m) => forMember(m, date));
 }

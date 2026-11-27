@@ -38,7 +38,7 @@ export function build({ from, to, clientId = '', type = '' }) {
 
   // Beban tim: 2 minggu ke depan
   const window = { from: today(), to: addDays(today(), 13) };
-  const memberRows = members.list({ includeInactive: false }).map((m) => {
+  const memberRows = members.visible().map((m) => {
     const load = activities.memberLoad(m.id, window);
     const capacity = load.capacityDays * (Number(m.dailyHours) || 8);
     const mine = acts.filter((a) => a.memberId === m.id);
@@ -87,6 +87,6 @@ export function build({ from, to, clientId = '', type = '' }) {
     byTeam,
     members: memberRows.sort((a, b) => b.utilization - a.utilization),
     window,
-    clientsCount: store.all('clients').length,
+    clientsCount: clients.list().length,
   };
 }
