@@ -38,14 +38,21 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
   const clientList = clients.list({ includeInactive: !!id });
   const order = id ? (ids && ids.includes(id) ? ids : rememberedOrder(id)).filter((x) => projects.get(x)) : [];
   const pos = order.indexOf(id);
-  const navBar = () =>
-    order.length > 1
-      ? `<div class="ticket-nav">
-          <button type="button" class="btn btn--ghost btn--sm" data-prev ${pos <= 0 ? 'disabled' : ''} title="Tiket sebelumnya">◀ Previous</button>
-          <span class="muted small">Tiket <b>${pos + 1}</b> dari ${order.length}${p.jiraNo ? ` · ${esc(p.jiraNo)}` : ''}</span>
-          <button type="button" class="btn btn--ghost btn--sm" data-next ${pos >= order.length - 1 ? 'disabled' : ''} title="Tiket berikutnya">Next ▶</button>
-        </div>`
-      : '';
+  // Bar atas (menempel saat di-scroll): navigasi tiket + tombol Batal / Simpan
+  const navBar = () => `
+    <div class="ticket-nav">
+      ${order.length > 1
+        ? `<div class="ticket-nav__move">
+            <button type="button" class="btn btn--ghost btn--sm" data-prev ${pos <= 0 ? 'disabled' : ''} title="Tiket sebelumnya">◀ Previous</button>
+            <span class="muted small">Tiket <b>${pos + 1}</b> dari ${order.length}${p.jiraNo ? ` · ${esc(p.jiraNo)}` : ''}</span>
+            <button type="button" class="btn btn--ghost btn--sm" data-next ${pos >= order.length - 1 ? 'disabled' : ''} title="Tiket berikutnya">Next ▶</button>
+          </div>`
+        : '<span></span>'}
+      <div class="ticket-nav__save">
+        <button type="button" class="btn btn--ghost btn--sm" data-close>Batal</button>
+        <button class="btn btn--primary btn--sm" type="submit">💾 Simpan</button>
+      </div>
+    </div>`;
 
   const modal = openModal({
     title: id ? `Edit Project ${p.code}` : 'Project Baru',
@@ -72,14 +79,14 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
         <fieldset>
           <legend>Biaya</legend>
           <div class="form-grid">
-            ${field('Cost / Free Mandays', `<select class="input" name="costType">${options(master.COST_TYPES, p.costType, { empty: '-' })}</select>`)}
+            ${field('Cost / Free Mandays', `<select class="input" name="costType">${options(master.COST_TYPES, p.costType, { empty: '-' })}</select>`, 'cost-field')}
             ${field('Mandays', `<input class="input num" name="mandays" type="number" min="0" step="0.5" value="${esc(p.mandays ?? '')}" />`, 'cost-field')}
             ${field('Price TCV', money('priceTcv', p.priceTcv), 'cost-field')}
             ${field('Revenue', money('revenue', p.revenue), 'cost-field')}
             ${field('Gross Profit', money('grossProfit', p.grossProfit), 'cost-field')}
             <div class="field span-3 calc-hint cost-field" data-calc-hint></div>
             <div class="field cost-field"><button type="button" class="btn btn--ghost btn--sm" data-calc>↻ Hitung otomatis</button></div>
-            <p class="alert alert--info span-3 nocost-info">ℹ️ Tipe <b data-nocost-type></b> tidak memerlukan Mandays, Price TCV, Revenue, Gross Profit & BAST (otomatis dikosongkan).</p>
+            <p class="alert alert--info span-4 nocost-info">ℹ️ Tipe <b data-nocost-type></b> tidak ada biaya: Cost/Free Mandays, Mandays, Price TCV, Revenue, Gross Profit & BAST tidak perlu diisi (otomatis dikosongkan).</p>
           </div>
         </fieldset>
 
@@ -100,10 +107,6 @@ export function openProjectForm({ id = '', preset = {}, onSaved, ids } = {}) {
           </div>
         </fieldset>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn--ghost" data-close>Batal</button>
-          <button class="btn btn--primary" type="submit">Simpan</button>
-        </div>
       </form>`,
   });
 

@@ -11,6 +11,7 @@ export const MENU = [
   { path: '/', section: 'dashboard', icon: '📊', label: 'Dashboard Workload' },
   { path: '/inquiry', section: 'inquiry', icon: '🔎', label: 'Inquiry Project' },
   { path: '/project', section: 'project', icon: '📁', label: 'List Project' },
+  { path: '/meeting', section: 'meeting', icon: '📝', label: 'Weekly Meeting' },
   { path: '/activity', section: 'activity', icon: '🗓️', label: 'Activity Member' },
   { path: '/client', section: 'client', icon: '🏦', label: 'Monitoring Client' },
   { path: '/trend', section: 'trend', icon: '📈', label: 'History Trend' },

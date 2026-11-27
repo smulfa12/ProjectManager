@@ -102,8 +102,8 @@ export async function save(id, input, note = '') {
   if (!data.clientId) throw new Error('Client wajib dipilih');
   if (!auth.canClient(data.clientId)) throw new Error('Anda tidak meng-handle client ini');
   if (!data.type) throw new Error('Tipe wajib dipilih');
-  // PRL (dan tipe tanpa biaya lain): tidak ada mandays, TCV, revenue, GP & BAST
-  if (master.isNoCost(data.type)) Object.assign(data, { mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, bast: '', bastDate: '' });
+  // PRL (dan tipe tanpa biaya lain): tidak ada biaya — Cost/FreeMandays, mandays, TCV, revenue, GP & BAST kosong
+  if (master.isNoCost(data.type)) Object.assign(data, { costType: '', mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, bast: '', bastDate: '' });
 
   if (!id) {
     data.code = data.code || nextCode(data.date || today());
