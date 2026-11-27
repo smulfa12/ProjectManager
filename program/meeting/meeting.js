@@ -7,6 +7,7 @@
 import * as projects from '../../service/project.service.js';
 import * as clients from '../../service/client.service.js';
 import * as master from '../../service/master.service.js';
+import * as members from '../../service/member.service.js';
 import { esc, pageHeader, options, emptyState, badge, toast, openModal } from '../../service/ui.service.js';
 import { today, dateLabel, daysUntil } from '../../service/format.service.js';
 import { jiraLink } from '../shared/project-table.js';
@@ -29,6 +30,9 @@ export default {
     } catch { /* abaikan */ }
     const f = { date: today(), clientId: '', pic: '', type: '', scope: 'open', q: '', hideDone: false, ...saved, date: saved.date || today() };
     const pics = [...new Set(projects.list().map((p) => p.picMlpt).filter(Boolean))].sort();
+    // pilihan PIC MLPT saat mengganti: PIC yang sudah ada + nama user tim
+    const picChoices = [...new Set([...pics, ...members.visible().map((m) => m.name)])].sort();
+    const isLate = (target, status) => Boolean(target) && !master.isClosed(status) && target < today();
 
     el.innerHTML = `
       ${pageHeader({ title: 'Weekly Meeting', subtitle: 'Isi update project cepat saat meeting — ketik lalu Enter untuk simpan & lanjut', icon: '📝',
@@ -102,17 +106,18 @@ export default {
                   <tr data-pid="${esc(p.id)}" class="${done ? 'is-done' : ''}">
                     <td class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener">${esc(p.code)}</a><br><small class="muted">${jiraLink(p)} · ${esc(p.type || '-')}</small></td>
                     <td><span class="clamp">${esc(p.title || p.outstanding || '-')}</span></td>
-                    <td>${esc(p.picMlpt || '-')}</td>
-                    <td class="nowrap ${late ? 'text-red' : ''}">${p.target ? dateLabel(p.target) + (late ? ' ⚠' : '') : '-'}</td>
+                    <td><input class="input input--sm meeting-pic" data-pic list="pm-meeting-pics" value="${esc(p.picMlpt || '')}" placeholder="PIC MLPT" /></td>
+                    <td><input class="input input--sm meeting-target ${late ? 'is-late' : ''}" type="date" data-target value="${esc(p.target || '')}" title="${late ? 'Lewat target' : 'Target'}" /></td>
                     <td data-last>${lastCell(p)}</td>
                     <td><select class="input input--sm" data-status>${options(master.statusNames(), p.status)}</select></td>
-                    <td><textarea class="input meeting-note" rows="1" data-note placeholder="Ketik update… Enter = simpan" title="Enter = simpan & lanjut · Shift+Enter = baris baru"></textarea></td>
+                    <td><textarea class="input meeting-note" rows="1" data-note placeholder="Ketik update…" title="Enter = simpan & lanjut · Shift+Enter = baris baru"></textarea></td>
                     <td class="actions"><span data-flag>${done ? badge('✓ diupdate', 'green') : ''}</span></td>
                   </tr>`;
                 })
                 .join('')}
             </tbody>
           </table>
+          <datalist id="pm-meeting-pics">${options(picChoices)}</datalist>
         </div></div>`;
 
       body.querySelectorAll('[data-note]').forEach((ta) => {
@@ -132,26 +137,60 @@ export default {
           next?.querySelector('[data-note]').focus();
         });
       });
-      body.querySelectorAll('[data-status]').forEach((sel) => sel.addEventListener('change', () => sel.closest('tr').classList.add('is-dirty')));
+      // status / PIC MLPT / target berubah → baris ditandai belum disimpan; Enter di PIC/target = simpan
+      body.querySelectorAll('[data-status],[data-pic],[data-target]').forEach((inp) => {
+        const mark = () => {
+          const tr = inp.closest('tr');
+          const p = projects.get(tr.dataset.pid);
+          if (inp.dataset.target !== undefined) inp.classList.toggle('is-late', isLate(inp.value, tr.querySelector('[data-status]').value));
+          tr.classList.toggle('is-dirty', changes(tr, p).length > 0 || Boolean(tr.querySelector('[data-note]').value.trim()));
+        };
+        inp.addEventListener('change', mark);
+        inp.addEventListener('input', mark);
+        if (inp.tagName === 'INPUT')
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              saveRow(inp.closest('tr'));
+            }
+          });
+      });
     }
 
-    /** Simpan satu baris: status (bila berubah) + catatan update. */
+    /** Field yang berubah di satu baris: status, PIC MLPT, target. */
+    function changes(tr, p) {
+      const now = {
+        status: tr.querySelector('[data-status]').value,
+        picMlpt: tr.querySelector('[data-pic]').value.trim(),
+        target: tr.querySelector('[data-target]').value,
+      };
+      return Object.keys(now).filter((k) => String(p[k] || '') !== now[k]).map((k) => [k, now[k]]);
+    }
+
+    /** Simpan satu baris: status / PIC MLPT / target (bila berubah) + catatan update. */
     async function saveRow(tr) {
       const p = projects.get(tr.dataset.pid);
       const note = tr.querySelector('[data-note]').value.trim();
-      const status = tr.querySelector('[data-status]').value;
-      if (!note && status === p.status) return false;
+      const changed = changes(tr, p);
+      if (!note && !changed.length) return false;
       const flag = tr.querySelector('[data-flag]');
       flag.innerHTML = '<span class="muted small">menyimpan…</span>';
       try {
-        if (status !== p.status) await projects.save(p.id, { ...p, status });
+        // perubahan field tercatat otomatis di History (sebelum → sesudah)
+        if (changed.length) await projects.save(p.id, { ...p, ...Object.fromEntries(changed) });
         if (note) await projects.addNote(p.id, note, { date: f.date });
         tr.querySelector('[data-note]').value = '';
         tr.querySelector('[data-note]').style.height = '';
         tr.classList.remove('is-dirty');
-        tr.classList.add('is-done');
-        tr.querySelector('[data-last]').innerHTML = lastCell(projects.get(p.id));
-        flag.innerHTML = badge('✓ diupdate', 'green');
+        const fresh = projects.get(p.id);
+        tr.querySelector('[data-last]').innerHTML = lastCell(fresh);
+        tr.querySelector('[data-target]').classList.toggle('is-late', isLate(fresh.target, fresh.status));
+        if (note || updatedOn(p.id, f.date)) {
+          tr.classList.add('is-done');
+          flag.innerHTML = badge('✓ diupdate', 'green');
+        } else {
+          flag.innerHTML = badge('✓ tersimpan', 'blue');
+        }
         progress();
         return true;
       } catch (err) {
