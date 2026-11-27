@@ -19,6 +19,7 @@ function overview(list) {
     <div class="stats stats--sm">
       ${statCard({ label: 'Client aktif', value: number(list.filter((c) => c.active !== false).length), tone: 'blue', icon: '🏦' })}
       ${statCard({ label: 'Free mandays terpakai', value: `${number(sum('freeUsed'))} / ${number(sum('freeQuota'))}`, hint: 'periode berjalan', tone: 'teal', icon: '🎁' })}
+      ${statCard({ label: 'Mandays Waived', value: md(sum('waivedMandays')), hint: `${rows.reduce((s, r) => s + r.m.waivedProjects.length, 0)} project · periode berjalan`, tone: 'amber', icon: '🤝' })}
       ${statCard({ label: 'Mandays berbayar', value: md(sum('billableMandays')), tone: 'purple', icon: '⏱️' })}
       ${statCard({ label: 'Revenue periode', value: rupiahShort(sum('revenue')), hint: `GP ${rupiahShort(sum('grossProfit'))}`, tone: 'green', icon: '💰' })}
     </div>
@@ -35,7 +36,8 @@ function overview(list) {
             <div class="client-card__usage">
               <div class="row-between small"><span>Free mandays</span><b>${number(m.freeUsed)} / ${number(m.freeQuota)} MD</b></div>
               ${progressBar(Math.min(m.freePct, 100), usageTone(m.freePct))}
-              <div class="row-between small muted"><span>Sisa ${number(m.freeRemaining)} MD</span><span>${m.range.source}: s/d ${dateLabel(m.range.to)}${left !== null && left >= 0 && left <= 30 ? ` <span class="text-amber">(${left} hari lagi)</span>` : ''}</span></div>
+              <div class="row-between small"><span>Waived</span><b>${number(m.waivedMandays)} MD · ${m.waivedProjects.length} project</b></div>
+              <div class="row-between small muted"><span>Sisa free ${number(m.freeRemaining)} MD</span><span>${m.range.source}: s/d ${dateLabel(m.range.to)}${left !== null && left >= 0 && left <= 30 ? ` <span class="text-amber">(${left} hari lagi)</span>` : ''}</span></div>
             </div>
             <dl class="mini-dl">
               <div><dt>Price/MD</dt><dd>${rupiahShort(c.pricePerMandays)}</dd></div>
@@ -57,7 +59,7 @@ function settingTable(list, field) {
       <table class="table">
         <thead><tr>
           <th>Client ID</th><th>Nama Client</th>
-          ${isPrice ? '<th class="num">Price per Mandays (Rp)</th><th class="num">Project berbayar (periode)</th><th class="num">Revenue (periode)</th>' : '<th>Tanggal Kontrak</th><th>Periode PM</th><th>Frekuensi</th><th class="num">Free Mandays</th><th class="num">Terpakai</th><th style="width:16%">Pemakaian</th>'}
+          ${isPrice ? '<th class="num">Price per Mandays (Rp)</th><th class="num">Project berbayar (periode)</th><th class="num">Revenue (periode)</th>' : '<th>Tanggal Kontrak</th><th>Periode PM</th><th>Frekuensi</th><th class="num">Free Mandays</th><th class="num">Terpakai</th><th style="width:16%">Pemakaian</th><th class="num">Waived (MD)</th>'}
           <th></th>
         </tr></thead>
         <tbody>
@@ -76,7 +78,8 @@ function settingTable(list, field) {
                   ? `<td class="num" style="width:220px">${input}</td><td class="num">${md(m.billableMandays)}</td><td class="num">${rupiah(m.revenue)}</td>`
                   : `<td>${dateLabel(c.contractDate)}</td><td>${c.pmStart ? `${dateLabel(c.pmStart)} – ${dateLabel(c.pmEnd)}` : '-'}</td><td>${esc(c.pmFrequency || '-')}</td>
                      <td class="num" style="width:140px">${input}</td><td class="num">${number(m.freeUsed)}</td>
-                     <td><div class="util">${progressBar(Math.min(m.freePct, 100), usageTone(m.freePct))}<span>${pct(m.freePct)}</span></div></td>`}
+                     <td><div class="util">${progressBar(Math.min(m.freePct, 100), usageTone(m.freePct))}<span>${pct(m.freePct)}</span></div></td>
+                     <td class="num">${number(m.waivedMandays)}</td>`}
                 <td class="actions">${editable ? `<button class="btn btn--icon btn--ghost btn--sm" data-edit="${esc(c.id)}" title="Edit client">✏️</button>` : ''}</td>
               </tr>`;
             })
@@ -118,8 +121,8 @@ export default {
     };
 
     el.innerHTML = `
-      ${pageHeader({ title: 'Monitoring Client', subtitle: 'Pemakaian free mandays, harga & project per client', icon: '🏦', actions: auth.isAdmin() ? '<button class="btn btn--primary" data-new>+ Client Baru</button>' : '' })}
-      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays']], tab)}
+      ${pageHeader({ title: 'Monitoring Client', subtitle: 'Pemakaian free mandays, waived, harga & project per client', icon: '🏦', actions: auth.isAdmin() ? '<button class="btn btn--primary" data-new>+ Client Baru</button>' : '' })}
+      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays & Waived']], tab)}
       <div data-body></div>`;
     bindTabs(el, (t) => {
       tab = t;

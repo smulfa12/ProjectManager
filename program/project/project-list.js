@@ -17,7 +17,7 @@ export default {
   path: '/project',
   title: 'List Project',
   render(el, params) {
-    const state = { q: params.q || '', clientId: params.client || '', status: params.status || '_open', sortKey: 'date', sortDir: -1 };
+    const state = { q: params.q || '', clientId: params.client || '', status: params.status || '_open', costType: params.cost || '', sortKey: 'date', sortDir: -1 };
     const canCreate = clients.list({ includeInactive: false }).length > 0;
 
     el.innerHTML = `
@@ -30,6 +30,7 @@ export default {
       <div class="toolbar">
         <input class="input input--search" data-q placeholder="Cari project…" value="${esc(state.q)}" />
         <select class="input input--sm" data-client>${options(clients.list(), state.clientId, { valueKey: 'id', labelKey: 'name', empty: 'Semua client' })}</select>
+        <select class="input input--sm" data-cost>${options(master.COST_TYPES, state.costType, { empty: 'Semua kategori biaya' })}</select>
         <div class="chips" data-status>
           ${[['_open', 'Belum selesai'], ['', 'Semua'], ...master.statusNames().map((s) => [s, s])]
             .map(([k, l]) => `<button class="chip ${k === state.status ? 'chip--on' : ''}" data-s="${esc(k)}">${esc(l)}</button>`)
@@ -46,6 +47,7 @@ export default {
         .list()
         .filter((p) => projects.matches(p, state.q))
         .filter((p) => !state.clientId || p.clientId === state.clientId)
+        .filter((p) => !state.costType || p.costType === state.costType)
         .filter((p) => (state.status === '_open' ? !master.isClosed(p.status) : !state.status || p.status === state.status));
 
       listEl.innerHTML = rows.length
@@ -74,6 +76,7 @@ export default {
 
     el.querySelector('[data-q]').addEventListener('input', (e) => ((state.q = e.target.value), draw()));
     el.querySelector('[data-client]').addEventListener('change', (e) => ((state.clientId = e.target.value), draw()));
+    el.querySelector('[data-cost]').addEventListener('change', (e) => ((state.costType = e.target.value), draw()));
     el.querySelectorAll('[data-s]').forEach((b) =>
       b.addEventListener('click', () => {
         state.status = b.dataset.s;

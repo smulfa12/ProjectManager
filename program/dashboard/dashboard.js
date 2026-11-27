@@ -35,7 +35,7 @@ function render(el, state) {
   box.innerHTML = `
     <div class="stats">
       ${statCard({ label: 'Total Project', value: number(s.count), hint: `${number(s.open)} open · <span class="text-red">${number(s.overdue)} lewat target</span>`, tone: 'blue', icon: '📁' })}
-      ${statCard({ label: 'Total Mandays', value: md(s.mandays), hint: `${number(data.byClient.length)} client`, tone: 'purple', icon: '⏱️' })}
+      ${statCard({ label: 'Total Mandays', value: md(s.mandays), hint: `Cost ${number(s.mandaysByCost.Cost)} · Free ${number(s.mandaysByCost['Free Mandays'])} · Waived ${number(s.mandaysByCost.Waived)}`, tone: 'purple', icon: '⏱️' })}
       ${statCard({ label: 'Price TCV', value: rupiahShort(s.priceTcv), hint: `Revenue ${rupiahShort(s.revenue)}`, tone: 'teal', icon: '💼' })}
       ${statCard({ label: 'Gross Profit', value: rupiahShort(s.grossProfit), hint: s.revenue ? `Margin ${pct((s.grossProfit / s.revenue) * 100)}` : '-', tone: s.grossProfit < 0 ? 'red' : 'green', icon: '📈' })}
       ${statCard({ label: 'Activity Open', value: number(data.activities.open), hint: `${number(data.activities.today)} target hari ini · <span class="text-red">${number(data.activities.overdue)} terlambat</span>`, tone: 'amber', icon: '🗓️' })}

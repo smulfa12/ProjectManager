@@ -153,6 +153,8 @@ export function summary(rows) {
     priceTcv: sum('priceTcv'),
     revenue: sum('revenue'),
     grossProfit: sum('grossProfit'),
+    // mandays per kategori: Cost (berbayar), Free Mandays, Waived
+    mandaysByCost: Object.fromEntries(['Cost', 'Free Mandays', 'Waived'].map((k) => [k, rows.filter((p) => p.costType === k).reduce((s, p) => s + (Number(p.mandays) || 0), 0)])),
   };
 }
 

@@ -1,5 +1,5 @@
 /**
- * Client Service — master client, harga per mandays, free mandays,
+ * Client Service — master client, harga per mandays, free mandays, waived,
  * dan perhitungan monitoring pemakaian per client.
  */
 import * as store from './store.service.js';
@@ -67,10 +67,12 @@ export function period(client) {
 export function monitoring(client) {
   const range = period(client);
   const projects = store.filter('projects', (p) => p.clientId === client.id);
-  const active = projects.filter((p) => p.status !== 'Cancel');
+  const isCancel = (p) => /cancel/i.test(p.status || '');
+  const active = projects.filter((p) => !isCancel(p));
   const inPeriod = active.filter((p) => inRange(p.date || p.createdAt?.slice(0, 10), range));
   const sum = (rows, f) => rows.reduce((s, p) => s + (Number(p[f]) || 0), 0);
   const free = inPeriod.filter((p) => p.costType === 'Free Mandays');
+  const waived = inPeriod.filter((p) => p.costType === 'Waived');
   const billable = inPeriod.filter((p) => p.costType === 'Cost');
   const freeUsed = sum(free, 'mandays');
   const quota = Number(client.freeMandays) || 0;
@@ -80,12 +82,15 @@ export function monitoring(client) {
     totalProjects: projects.length,
     openProjects: projects.filter((p) => !master.isClosed(p.status)).length,
     overdue: projects.filter((p) => !master.isClosed(p.status) && p.target && p.target < t).length,
-    bastPending: projects.filter((p) => p.status === 'Done' && !p.bastDate).length,
+    // selesai (bukan cancel) tapi belum ada tanggal BAST / BAST belum signed
+    bastPending: projects.filter((p) => master.isClosed(p.status) && !isCancel(p) && !p.bastDate && !/signed/i.test(p.bast || '')).length,
     freeQuota: quota,
     freeUsed,
     freeRemaining: quota - freeUsed,
     freePct: quota ? (freeUsed / quota) * 100 : freeUsed ? 100 : 0,
     freeProjects: free,
+    waivedMandays: sum(waived, 'mandays'),
+    waivedProjects: waived,
     billableMandays: sum(billable, 'mandays'),
     tcv: sum(inPeriod, 'priceTcv'),
     revenue: sum(inPeriod, 'revenue'),

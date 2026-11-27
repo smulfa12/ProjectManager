@@ -11,6 +11,18 @@ import { projectTable } from '../shared/project-table.js';
 import { openClientForm } from './client-form.js';
 import { navigate } from '../../service/router.service.js';
 
+/** Tabel project per kategori biaya (Free Mandays / Waived) di periode berjalan. */
+function costTable(rows, label) {
+  if (!rows.length) return `<p class="muted small">Belum ada project ${label} di periode ini.</p>`;
+  return `
+    <table class="table table--compact">
+      <thead><tr><th>Project</th><th>Tipe</th><th>Date</th><th class="num">Mandays</th></tr></thead>
+      <tbody>${rows
+        .map((p) => `<tr><td><a href="#/project/detail?id=${esc(p.id)}">${esc(p.code)}</a> ${esc(p.title || '')}</td><td>${esc(p.type)}</td><td>${dateLabel(p.date)}</td><td class="num">${number(p.mandays)}</td></tr>`)
+        .join('')}</tbody>
+    </table>`;
+}
+
 export default {
   path: '/client/detail',
   title: 'Detail Client',
@@ -36,6 +48,7 @@ export default {
       <div class="stats stats--sm">
         ${statCard({ label: 'Price per Mandays', value: rupiah(c.pricePerMandays), tone: 'blue' })}
         ${statCard({ label: 'Free Mandays', value: `${number(m.freeUsed)} / ${number(m.freeQuota)} MD`, hint: `sisa ${number(m.freeRemaining)} MD`, tone: tone })}
+        ${statCard({ label: 'Waived', value: md(m.waivedMandays), hint: `${m.waivedProjects.length} project`, tone: 'amber' })}
         ${statCard({ label: 'Mandays berbayar', value: md(m.billableMandays), tone: 'purple' })}
         ${statCard({ label: 'Revenue / GP', value: rupiahShort(m.revenue), hint: `GP ${rupiahShort(m.grossProfit)}`, tone: 'green' })}
         ${statCard({ label: 'Project', value: `${m.openProjects} open`, hint: `${m.totalProjects} total · ${m.bastPending} belum BAST`, tone: 'amber' })}
@@ -45,14 +58,15 @@ export default {
         <section class="card">
           <div class="card__head"><h3>🎁 Pemakaian Free Mandays</h3><span class="muted small">${m.range.source}: ${dateLabel(m.range.from)} – ${dateLabel(m.range.to)}</span></div>
           <div class="util util--lg">${progressBar(Math.min(m.freePct, 100), tone)}<span>${pct(m.freePct)}</span></div>
-          ${m.freeProjects.length ? `
-          <table class="table table--compact">
-            <thead><tr><th>Project</th><th>Tipe</th><th>Date</th><th class="num">Mandays</th></tr></thead>
-            <tbody>${m.freeProjects
-              .map((p) => `<tr><td><a href="#/project/detail?id=${esc(p.id)}">${esc(p.code)}</a> ${esc(p.title || '')}</td><td>${esc(p.type)}</td><td>${dateLabel(p.date)}</td><td class="num">${number(p.mandays)}</td></tr>`)
-              .join('')}</tbody>
-          </table>` : '<p class="muted small">Belum ada project Free Mandays di periode ini.</p>'}
+          ${costTable(m.freeProjects, 'Free Mandays')}
         </section>
+        <section class="card">
+          <div class="card__head"><h3>🤝 Waived</h3><span class="muted small">${number(m.waivedMandays)} MD · ${m.range.source}</span></div>
+          ${costTable(m.waivedProjects, 'Waived')}
+        </section>
+      </div>
+
+      <div class="grid grid--2">
         <section class="card">
           <div class="card__head"><h3>👥 User yang meng-handle</h3>${auth.isAdmin() ? '<a class="small" href="#/settings?tab=users">Atur →</a>' : ''}</div>
           <ul class="member-load">
