@@ -213,3 +213,6 @@ tr[data-open] { cursor: pointer; }
 .input--money { width: 140px; min-width: 0; }
 .ticket-nav__move { display: flex; align-items: center; gap: 10px; }
 .ticket-nav__save { display: flex; gap: 8px; margin-left: auto; }
+
+.app-error { margin: 40px auto; max-width: 560px; padding: 18px 20px; border-radius: var(--radius); background: var(--red-bg); color: #7f1d1d; }
+.app-error p { margin: 6px 0 0; word-break: break-word; }

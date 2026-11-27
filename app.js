@@ -50,6 +50,10 @@ const router = createRouter({
 MODULES.forEach((m) => router.register(m));
 
 // Muat sesi & data (Supabase / lokal) lalu tampilkan halaman pertama
-await initAuth({ onRemoteChange: () => router.refreshInBackground(isUserBusy) });
+try {
+  await initAuth({ onRemoteChange: () => router.refreshInBackground(isUserBusy) });
+} catch (err) {
+  console.error('Gagal memuat data', err);
+}
 document.body.classList.remove('booting');
 router.start();
