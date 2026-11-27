@@ -64,7 +64,7 @@ export function forMember(m) {
       const stale = daysSinceUpdate(p);
       if (stale >= STALE_DAYS) add(`Belum ada update ${stale} hari`, 'gray', 4);
       if (reasons.length)
-        out.push({ kind: 'project', id: p.id, href: `#/project/detail?id=${p.id}&tab=history`, code: p.code, jira: p.jiraNo, title: p.title || p.outstanding || '-', client: clients.nameOf(p.clientId), status: p.status, reasons, severity: sev });
+        out.push({ kind: 'project', id: p.id, href: `#/project/detail?id=${p.id}&tab=history`, code: p.code, jira: p.jiraNo, target: p.target, title: p.title || p.outstanding || '-', client: clients.nameOf(p.clientId), status: p.status, reasons, severity: sev });
     });
 
   activities
@@ -74,7 +74,7 @@ export function forMember(m) {
       if (!a.planEnd) return;
       const d = diffDays(t, a.planEnd);
       const p = projects.get(a.projectId);
-      const base = { kind: 'activity', id: a.id, href: '#/activity?view=table', code: p?.code || 'Internal', jira: p?.jiraNo || '', title: a.title, client: p ? clients.nameOf(p.clientId) : '-', status: master.activityStatus(a.status).label };
+      const base = { kind: 'activity', id: a.id, href: '#/activity?view=table', code: p?.code || 'Internal', jira: p?.jiraNo || '', target: a.planEnd, title: a.title, client: p ? clients.nameOf(p.clientId) : '-', status: master.activityStatus(a.status).label };
       if (d < 0) out.push({ ...base, reasons: [{ text: `Activity terlambat ${-d} hari`, tone: 'red' }], severity: 1 });
       else if (d === 0) out.push({ ...base, reasons: [{ text: 'Activity target hari ini', tone: 'amber' }], severity: 2 });
     });

@@ -33,3 +33,4 @@ ins { color: var(--green); text-decoration: none; font-weight: 600; }
 .no-scroll { overflow: hidden; }
 .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 260px; }
 .nowrap { white-space: nowrap; }
+.mt { margin-top: 16px; }

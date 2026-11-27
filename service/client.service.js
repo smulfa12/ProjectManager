@@ -5,6 +5,7 @@
 import * as store from './store.service.js';
 import * as auth from './auth.service.js';
 import * as master from './master.service.js';
+import * as maintenance from './maintenance.service.js';
 import { today, addDays, inRange } from './format.service.js';
 
 /** Client yang boleh dilihat user ini, urut nama. */
@@ -17,6 +18,23 @@ export function list({ includeInactive = true } = {}) {
 
 export const get = (id) => store.get('clients', id);
 export const nameOf = (id) => get(id)?.name || '-';
+
+/** Daftar PIC Bank: buang baris kosong & nama ganda. */
+function cleanPics(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  return list
+    .map((x) => ({ name: String(x.name || '').trim(), position: String(x.position || '').trim(), email: String(x.email || '').trim(), phone: String(x.phone || '').trim() }))
+    .filter((x) => x.name && !seen.has(x.name.toLowerCase()) && seen.add(x.name.toLowerCase()));
+}
+
+/** PIC Bank client (daftar), termasuk PIC lama bila daftar masih kosong. */
+export function pics(clientId) {
+  const c = get(clientId);
+  if (!c) return [];
+  if (Array.isArray(c.picList) && c.picList.length) return c.picList;
+  return c.pic ? [{ name: c.pic, position: '', email: '', phone: '' }] : [];
+}
 
 function clean(input) {
   return {
@@ -31,7 +49,8 @@ function clean(input) {
     pmEnd: input.pmEnd || '',
     pmFrequency: input.pmFrequency || '',
     pricePerMandays: Number(input.pricePerMandays) || 0,
-    pic: String(input.pic || '').trim(),
+    picList: cleanPics(input.picList),
+    pic: cleanPics(input.picList)[0]?.name || String(input.pic || '').trim(),
     notes: String(input.notes || '').trim(),
     active: input.active !== false,
   };
@@ -54,7 +73,13 @@ export async function remove(id) {
 export const updatePricing = (id, patch) => store.update('clients', id, patch);
 
 /** Periode free mandays: periode PM → 1 tahun dari tanggal kontrak → tahun berjalan. */
+/**
+ * Periode pemakaian mandays (free mandays, mandays berbayar, revenue):
+ * jangka waktu kontrak (Tanggal Kontrak → Akhir Kontrak) → periode PM → tahun berjalan.
+ */
 export function period(client) {
+  const k = maintenance.contract(client);
+  if (k && !k.defaultEnd) return { from: k.start, to: k.end, source: 'Periode kontrak' };
   if (client.pmStart && client.pmEnd) return { from: client.pmStart, to: client.pmEnd, source: 'Periode PM' };
   if (client.contractDate) {
     const y = Number(client.contractDate.slice(0, 4));
@@ -67,7 +92,11 @@ export function period(client) {
   return { from: `${y}-01-01`, to: `${y}-12-31`, source: 'Tahun berjalan' };
 }
 
-/** Ringkasan monitoring satu client. */
+/**
+ * Ringkasan monitoring satu client.
+ * Mandays langsung terpotong sejak tiket dicatat (tanggal tiket di dalam periode kontrak),
+ * tanpa menunggu project selesai. Tiket berstatus Cancel/Canceled tidak dihitung.
+ */
 export function monitoring(client) {
   const range = period(client);
   const projects = store.filter('projects', (p) => p.clientId === client.id);

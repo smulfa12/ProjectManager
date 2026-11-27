@@ -66,7 +66,7 @@ function settingTable(list, field) {
       <table class="table">
         <thead><tr>
           <th>Client ID</th><th>Nama Client</th>
-          ${isPrice ? '<th class="num">Price per Mandays (Rp)</th><th class="num">Project berbayar (periode)</th><th class="num">Revenue (periode)</th>' : '<th>Tanggal Kontrak</th><th>Periode PM</th><th>Frekuensi</th><th class="num">Free Mandays</th><th class="num">Terpakai</th><th style="width:16%">Pemakaian</th><th class="num">Waived (MD)</th>'}
+          ${isPrice ? '<th class="num">Price per Mandays (Rp)</th><th class="num">Project berbayar (periode)</th><th class="num">Revenue (periode)</th>' : '<th>Periode hitung mandays</th><th>Frekuensi PM</th><th class="num">Free Mandays</th><th class="num">Terpakai</th><th style="width:16%">Pemakaian</th><th class="num">Waived (MD)</th>'}
           <th></th>
         </tr></thead>
         <tbody>
@@ -83,7 +83,7 @@ function settingTable(list, field) {
                 <td><b>${esc(c.name)}</b></td>
                 ${isPrice
                   ? `<td class="num" style="width:220px">${input}</td><td class="num">${md(m.billableMandays)}</td><td class="num">${rupiah(m.revenue)}</td>`
-                  : `<td>${dateLabel(c.contractDate)}</td><td>${c.pmStart ? `${dateLabel(c.pmStart)} – ${dateLabel(c.pmEnd)}` : '-'}</td><td>${esc(c.pmFrequency || '-')}</td>
+                  : `<td class="nowrap">${dateLabel(m.range.from)} – ${dateLabel(m.range.to)}<br><small class="muted">${m.range.source}</small></td><td>${esc(c.pmFrequency || '-')}</td>
                      <td class="num" style="width:140px">${input}</td><td class="num">${number(m.freeUsed)}</td>
                      <td><div class="util">${progressBar(Math.min(m.freePct, 100), usageTone(m.freePct))}<span>${pct(m.freePct)}</span></div></td>
                      <td class="num">${number(m.waivedMandays)}</td>`}
