@@ -5,6 +5,7 @@
 import { esc } from '../service/ui.service.js';
 import * as auth from '../service/auth.service.js';
 import { navigate } from '../service/router.service.js';
+import { APP_VERSION } from '../service/version.service.js';
 
 const ERRORS = {
   'Invalid login credentials': 'Email atau password salah',
@@ -38,6 +39,7 @@ export default {
           <p class="alert alert--error hidden" data-error role="alert"></p>
           <button class="btn btn--primary btn--block" type="submit" data-submit>Masuk</button>
           <p class="muted small center">Belum punya akun? Hubungi admin untuk dibuatkan.</p>
+          <p class="muted small center">Project Manager ${APP_VERSION}</p>
         </form>
       </div>`;
 
