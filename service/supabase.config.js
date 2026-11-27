@@ -9,5 +9,5 @@
  *
  * Kalau dikosongkan, aplikasi berjalan dalam "mode lokal" (data di browser + data contoh).
  */
-export const SUPABASE_URL = '';
-export const SUPABASE_ANON_KEY = '';
+export const SUPABASE_URL = 'https://hinrjtjuatmmojqowfgr.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_LOk333-LQgIkFfUv06qpFQ_DVx8fdYp';
