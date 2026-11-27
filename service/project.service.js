@@ -19,7 +19,6 @@ export const FIELDS = {
   jiraNo: 'No Jira',
   module: 'Modul',
   crNo: 'No CR Client',
-  outstanding: 'Project Outstanding',
   date: 'Date',
   costType: 'Cost/Free Mandays',
   mandays: 'Mandays',

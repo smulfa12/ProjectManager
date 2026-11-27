@@ -61,7 +61,6 @@ export const COLUMNS = [
   { key: 'systemId', label: 'Project ID Sistem' },
   { key: 'module', label: 'Modul' },
   { key: 'crNo', label: 'No CR Client' },
-  { key: 'outstanding', label: 'Project Outstanding', html: (p) => `<span class="clamp">${esc(p.outstanding || '-')}</span>` },
   { key: 'date', label: 'Date', html: (p) => dateLabel(p.date) },
   { key: 'costType', label: 'Cost/Free Mandays', html: (p) => (p.costType ? badge(p.costType, master.costTone(p.costType)) : '<span class="muted">-</span>') },
   { key: 'mandays', label: 'Mandays', num: true, html: (p) => number(p.mandays) },

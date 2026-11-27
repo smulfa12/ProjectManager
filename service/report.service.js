@@ -50,7 +50,7 @@ const fileSuffix = (f) => `${f.clientId ? clients.get(f.clientId)?.code || 'clie
 
 const C = {
   ringkasan: ['Client', 'Total Tiket', 'Belum Selesai', 'Selesai', 'CR/Project', 'CR Belum Selesai', 'PRL', 'PRL Belum Selesai', 'PRL Lewat SLA', 'Mandays', 'Price TCV', 'Revenue', 'Gross Profit', 'Belum BAST'],
-  project: ['No', 'ID Project', 'Client', 'Tipe', 'No Jira', 'Link Jira', 'Nama Project', 'Modul', 'No CR Client', 'PIC Bank', 'PIC MLPT', 'Date', 'Start', 'Target', 'Selesai Aktual', 'Status', 'Lewat Target', 'Progress Activity (%)', 'Cost/Free Mandays', 'Mandays', 'Price TCV', 'Revenue', 'Gross Profit', 'BAST', 'Tanggal BAST', 'Update Terakhir', 'Isi Update Terakhir', 'Project Outstanding', 'Notes'],
+  project: ['No', 'ID Project', 'Client', 'Tipe', 'No Jira', 'Link Jira', 'Nama Project', 'Modul', 'No CR Client', 'PIC Bank', 'PIC MLPT', 'Date', 'Start', 'Target', 'Selesai Aktual', 'Status', 'Lewat Target', 'Progress Activity (%)', 'Cost/Free Mandays', 'Mandays', 'Price TCV', 'Revenue', 'Gross Profit', 'BAST', 'Tanggal BAST', 'Update Terakhir', 'Isi Update Terakhir', 'Notes'],
   prl: ['No', 'ID Project', 'Client', 'No Jira', 'Link Jira', 'Nama PRL', 'Modul', 'Prioritas', 'PIC Bank', 'PIC MLPT', 'Waktu Lapor', 'Batas Solusi Sementara', 'Solusi Sementara Selesai', 'SLA Sementara', 'Batas Solusi Permanen', 'Solusi Permanen Selesai', 'SLA Permanen', 'Status', 'Update Terakhir', 'Isi Update Terakhir'],
   history: ['Tanggal', 'ID Project', 'Client', 'Tipe', 'No Jira', 'Nama Project', 'Update', 'Oleh'],
   slaSummary: ['Client', 'Prioritas', 'Jumlah PRL', 'Sementara - Tercapai', 'Sementara - Terlambat', 'Sementara - Lewat SLA (belum selesai)', 'Sementara - Berjalan', 'Sementara - % Tercapai', 'Permanen - Tercapai', 'Permanen - Terlambat', 'Permanen - Lewat SLA (belum selesai)', 'Permanen - Berjalan', 'Permanen - % Tercapai'],
@@ -176,7 +176,6 @@ export async function progressReport(filter, choice = {}) {
       'Tanggal BAST': D(p.bastDate),
       'Update Terakhir': lu ? D(lu.createdAt) : '',
       'Isi Update Terakhir': lu?.note || p.remark,
-      'Project Outstanding': p.outstanding,
       Notes: p.notes,
     };
   });

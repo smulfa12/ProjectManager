@@ -85,7 +85,6 @@ function tabData(p) {
     })() : ''}
     <section class="card">
       ${dl([
-        [F.outstanding, esc(p.outstanding)],
         [F.remark, esc(p.remark)],
         [F.notes, esc(p.notes).replace(/\n/g, '<br>')],
         ['Dibuat', `${dateTimeLabel(p.createdAt)} ${p.createdBy ? 'oleh ' + esc(p.createdBy) : ''}`],

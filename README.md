@@ -23,8 +23,8 @@ Database memakai **Supabase** (project `ProjectManager_`) dan kode dibuat **per 
 | 7 | **Setting** (admin) | **7.1 User parameter**: matriks User × Client (client apa saja yang di-handle tiap user), role, tim, jam kerja, penerima reminder. Master data (tipe tiket, status, modul, tim, frekuensi PM, biaya internal/MD, awalan Uniq ID), pengaturan reminder, data contoh. |
 
 ### Data Project
-Uniq ID Project (otomatis `PRJ-YYMM-0001`), Project ID Sistem, Nama, Tipe, Client, No Jira, Modul, No CR Client,
-Project Outstanding, Date, Cost/Free Mandays, Mandays, Price TCV, Revenue, Gross Profit, BAST (+ tanggal),
+Uniq ID Project (otomatis `PRJ-YYMM-0001`), Project ID Sistem, Nama Project, Tipe, Client, No Jira, Modul, No CR Client,
+Date, Cost/Free Mandays, Mandays, Price TCV, Revenue, Gross Profit, BAST (+ tanggal),
 PIC Bank, PIC MLPT, Start, Target, Selesai Aktual, Status, Remark, Notes.
 
 > **Perhitungan otomatis** (bisa diubah manual di form):
