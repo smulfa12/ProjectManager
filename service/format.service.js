@@ -49,6 +49,12 @@ export function addDays(iso, n) {
   return toISODate(d);
 }
 
+export function addYears(iso, n) {
+  const d = parseDate(iso);
+  d.setFullYear(d.getFullYear() + n);
+  return toISODate(d);
+}
+
 /** Selisih hari b − a (inklusif = false). */
 export function diffDays(a, b) {
   return Math.round((parseDate(b) - parseDate(a)) / 86400000);

@@ -5,11 +5,12 @@ import * as clients from '../../service/client.service.js';
 import * as members from '../../service/member.service.js';
 import * as projects from '../../service/project.service.js';
 import * as auth from '../../service/auth.service.js';
-import { esc, pageHeader, emptyState, statCard, progressBar, confirmDialog, attempt } from '../../service/ui.service.js';
+import { esc, badge, pageHeader, emptyState, statCard, progressBar, confirmDialog, attempt } from '../../service/ui.service.js';
 import { rupiah, rupiahShort, number, md, dateLabel, pct } from '../../service/format.service.js';
 import { projectTable } from '../shared/project-table.js';
 import { openClientForm } from './client-form.js';
 import { navigate } from '../../service/router.service.js';
+import * as maintenance from '../../service/maintenance.service.js';
 
 /** Tabel project per kategori biaya (Free Mandays / Waived) di periode berjalan. */
 function costTable(rows, label) {
@@ -75,6 +76,29 @@ export default {
           ${c.pic || c.notes ? `<p class="small"><b>PIC Client:</b> ${esc(c.pic || '-')}<br>${esc(c.notes || '')}</p>` : ''}
         </section>
       </div>
+
+      ${(() => {
+        const s = maintenance.summary(c);
+        if (!s.hasContract || !s.tcv) return '';
+        const now = new Date().getFullYear();
+        return `
+      <section class="card">
+        <div class="card__head"><h3>💼 Kontrak Maintenance & Amortisasi</h3><span class="muted small">${dateLabel(s.start)} – ${dateLabel(s.end)} · ${s.months} bulan · ${s.status}</span></div>
+        <div class="stats stats--sm">
+          ${statCard({ label: 'Harga / tahun', value: rupiahShort(s.price), tone: 'blue' })}
+          ${statCard({ label: 'Nilai Kontrak (TCV)', value: rupiahShort(s.tcv), hint: s.tcvAuto ? 'otomatis' : '', tone: 'purple' })}
+          ${statCard({ label: 'Amortisasi / bulan', value: rupiahShort(s.monthly), tone: 'teal' })}
+          ${statCard({ label: 'Terakui s/d hari ini', value: rupiahShort(s.toDate), hint: `sisa ${rupiahShort(s.remaining)}`, tone: 'green' })}
+        </div>
+        <table class="table table--compact">
+          <thead><tr><th>Tahun</th><th>Periode</th><th class="num">Bulan</th><th class="num">Pengakuan (amortisasi)</th></tr></thead>
+          <tbody>${maintenance
+            .schedule(c)
+            .map((r) => `<tr class="${r.year === now ? 'is-current' : ''}"><td><b>${r.year}</b>${r.year === now ? ' ' + badge('tahun berjalan', 'blue') : ''}</td><td>${dateLabel(r.from)} – ${dateLabel(r.to)}</td><td class="num">${r.months}</td><td class="num">${rupiah(r.amount)}</td></tr>`)
+            .join('')}</tbody>
+        </table>
+      </section>`;
+      })()}
 
       <section class="card card--flush">
         <div class="card__head card__head--pad"><h3>📁 Project (${all.length})</h3><a class="btn btn--sm btn--ghost" href="#/project?client=${esc(c.id)}&status=">Buka di List Project</a></div>

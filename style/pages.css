@@ -126,3 +126,18 @@
 .history-add input[type='date'] { width: 160px; }
 .history__actions { margin-left: auto; display: inline-flex; gap: 2px; }
 .history__meta { width: 100%; }
+
+/* ===== Chart (History Trend) ===== */
+.chart__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.chart__legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.chart__scroll { overflow-x: auto; }
+.chart svg { display: block; }
+.chart__grid { stroke: var(--line); stroke-width: 1; }
+.chart__axis { font-size: 11px; fill: var(--muted); }
+.chart__cat { font-weight: 600; fill: var(--ink-2); }
+.chart__cat.is-click { cursor: pointer; }
+.chart__cat.is-click:hover { fill: var(--primary); }
+.chart__bar { cursor: pointer; transition: opacity 0.15s; }
+.chart__bar:hover { opacity: 0.8; }
+.growth--up { color: var(--green); }
+.growth--down { color: var(--red); }

@@ -11,6 +11,7 @@ const LISTS = [
   ['pm.modules', '🧩 Modul'],
   ['pm.teams', '👥 Tim'],
   ['pm.frequencies', '🔁 Frekuensi Preventive Maintenance'],
+  ['pm.noCostTypes', '🚫 Tipe tanpa Mandays / TCV / BAST (cth. PRL)'],
 ];
 
 export function renderMaster(el) {

@@ -6,7 +6,7 @@
 import * as store from './store.service.js';
 
 export const DEFAULTS = {
-  'pm.types': ['Change Request', 'Incident', 'Preventive Maintenance', 'Project', 'Enhancement', 'Support'],
+  'pm.types': ['CR', 'PRL', 'Change Request', 'Incident', 'Preventive Maintenance', 'Project', 'Enhancement', 'Support'],
   'pm.statuses': [
     { name: 'Open', tone: 'gray', closed: false },
     { name: 'On Progress', tone: 'blue', closed: false },
@@ -18,6 +18,8 @@ export const DEFAULTS = {
   'pm.modules': ['Core Banking', 'Mobile Banking', 'Internet Banking', 'Payment Gateway', 'Reporting', 'Middleware'],
   'pm.teams': ['Developer', 'QA', 'Business Analyst', 'Support'],
   'pm.frequencies': ['Bulanan', 'Triwulan', 'Semester', 'Tahunan'],
+  // tipe tiket yang tidak perlu Mandays, Price TCV, Revenue, Gross Profit & BAST
+  'pm.noCostTypes': ['PRL'],
   'pm.finance': { costPerMandays: 1500000, codePrefix: 'PRJ' },
   'pm.reminder': { enabled: true, time: '07:30', cc: '', appUrl: '' },
 };
@@ -31,6 +33,9 @@ export const statusNames = () => statuses().map((s) => s.name);
 export const modules = () => get('pm.modules');
 export const teams = () => get('pm.teams');
 export const frequencies = () => get('pm.frequencies');
+export const noCostTypes = () => get('pm.noCostTypes');
+/** Tipe tiket tanpa biaya & BAST (default: PRL). */
+export const isNoCost = (type) => Boolean(type) && noCostTypes().some((t) => t.toLowerCase() === String(type).toLowerCase());
 export const finance = () => ({ ...DEFAULTS['pm.finance'], ...get('pm.finance') });
 export const reminder = () => ({ ...DEFAULTS['pm.reminder'], ...get('pm.reminder') });
 

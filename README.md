@@ -13,7 +13,8 @@ Database memakai **Supabase** (project `ProjectManager_`) dan kode dibuat **per 
 | 2 | **Inquiry Project** | Cari project dengan filter lengkap (kata kunci, client, tipe, status, modul, cost/free MD, PIC, rentang Date & Target, BAST, lewat target, outstanding), ringkasan hasil, semua kolom Data Project, export CSV. |
 | 3 | **List Project** | Daftar project + tambah/edit/hapus. Detail project berisi tab **Data Project**, **Timeline** (milestone + Gantt activity), **Member Assignment** (member, role, alokasi mandays), **History Update** (log otomatis setiap perubahan + catatan manual). |
 | 4 | **List Activity Member** | **Gantt chart** (Timeline Target vs Timeline Realtime, per member / per project, zoom harian/mingguan/bulanan), **Kanban** (drag & drop To Do → In Progress → Review → Done, tanggal aktual terisi otomatis), dan tabel deviasi. |
-| 5 | **Monitoring Client** | Kartu monitoring per client (pemakaian free mandays, project open, revenue, belum BAST). **5.1 Setting Price per Client** dan **5.2 Setting Free Mandays per Client** (edit langsung di tabel). |
+| 5 | **Monitoring Client** | Kartu monitoring per client (pemakaian free mandays, project open, revenue, belum BAST). **5.1 Setting Price per Client**, **5.2 Setting Free Mandays per Client**, dan **5.3 Maintenance & Amortisasi**: harga maintenance tahun berjalan, nilai kontrak (TCV), periode kontrak; pendapatan diakui merata sepanjang kontrak (edit langsung di tabel). |
+| 5b | **History Trend** | Grafik pergerakan tiket **close** dari tahun ke tahun (dan per bulan) per tipe — CR, PRL (maintenance), dll — dengan metrik jumlah tiket / mandays / revenue, plus **pendapatan kontrak maintenance** (amortisasi). Tabel pertumbuhan per tahun. |
 | 6 | **Reminder** | Preview reminder per member (target hari ini, terlambat, sedang dikerjakan), **kirim email sekarang**, draft email (mailto), log pengiriman. Otomatis tiap pagi lewat Supabase Edge Function + pg_cron. |
 | 7 | **Setting** (admin) | **7.1 User parameter**: matriks User × Client (client apa saja yang di-handle tiap user), role, tim, jam kerja, penerima reminder. Master data (tipe tiket, status, modul, tim, frekuensi PM, biaya internal/MD, awalan Uniq ID), pengaturan reminder, data contoh. |
 
@@ -25,10 +26,14 @@ PIC Bank, PIC MLPT, Start, Target, Selesai Aktual, Status, Remark, Notes.
 > **Perhitungan otomatis** (bisa diubah manual di form):
 > Price TCV = Mandays × Price per Mandays client (Free Mandays → 0) · Revenue = Price TCV ·
 > Gross Profit = Revenue − Mandays × biaya internal per mandays (Setting → Master Data).
+> Tipe **PRL** (atur di Setting → Master Data) tidak memerlukan Mandays, Price TCV, Revenue, Gross Profit & BAST.
+>
+> **Maintenance client**: TCV kontrak = harga per tahun × lama kontrak (bulan) ÷ 12 (atau diisi manual);
+> amortisasi = TCV ÷ total hari kontrak × hari kontrak dalam periode.
 
 ### Data Client
 Client ID, Nama Client, Free Mandays, Tanggal Kontrak, Periode Preventive Maintenance (mulai–selesai + frekuensi),
-Price per Mandays, PIC, catatan. Free mandays terpakai = total mandays project **Free Mandays** di dalam periode PM.
+Price per Mandays, PIC, catatan, **Akhir Kontrak, Harga Maintenance / tahun, Nilai Kontrak Maintenance (TCV)**. Free mandays terpakai = total mandays project **Free Mandays** di dalam periode PM.
 
 ## 🗂️ Struktur Folder (modular)
 

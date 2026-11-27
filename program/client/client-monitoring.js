@@ -2,6 +2,7 @@
  * Menu 5 — Monitoring Client
  *  5.1 Setting price per client
  *  5.2 Setting free mandays per client
+ *  5.3 Maintenance: harga tahun berjalan & amortisasi TCV kontrak
  * Plus pemakaian free mandays, revenue & project per client.
  */
 import * as clients from '../../service/client.service.js';
@@ -9,6 +10,7 @@ import * as auth from '../../service/auth.service.js';
 import { esc, pageHeader, tabs, bindTabs, emptyState, progressBar, badge, bindMoneyInput, moneyValue, attempt, confirmDialog, statCard, toast } from '../../service/ui.service.js';
 import { rupiah, rupiahShort, number, md, dateLabel, daysUntil, parseNumber, pct } from '../../service/format.service.js';
 import { openClientForm } from './client-form.js';
+import * as maintenance from '../../service/maintenance.service.js';
 
 const usageTone = (p) => (p >= 100 ? 'red' : p >= 80 ? 'amber' : 'green');
 
@@ -36,6 +38,10 @@ function overview(list) {
             <div class="client-card__usage">
               <div class="row-between small"><span>Free mandays</span><b>${number(m.freeUsed)} / ${number(m.freeQuota)} MD</b></div>
               ${progressBar(Math.min(m.freePct, 100), usageTone(m.freePct))}
+              ${(() => {
+                const ms = maintenance.summary(c);
+                return ms.hasContract && ms.tcv ? `<div class="row-between small"><span>Maintenance ${ms.year}</span><b>${rupiahShort(ms.yearAmount)} · ${ms.status}</b></div>` : '';
+              })()}
               <div class="row-between small"><span>Waived</span><b>${number(m.waivedMandays)} MD · ${m.waivedProjects.length} project</b></div>
               <div class="row-between small muted"><span>Sisa free ${number(m.freeRemaining)} MD</span><span>${m.range.source}: s/d ${dateLabel(m.range.to)}${left !== null && left >= 0 && left <= 30 ? ` <span class="text-amber">(${left} hari lagi)</span>` : ''}</span></div>
             </div>
@@ -90,6 +96,53 @@ function settingTable(list, field) {
     ${auth.isAdmin() ? `<div class="form-actions"><button class="btn btn--primary" data-save-all>Simpan perubahan</button></div>` : '<p class="muted small">Hanya admin yang dapat mengubah setting client.</p>'}`;
 }
 
+/** 5.3 Maintenance: harga tahun berjalan, TCV kontrak & amortisasi (bisa diedit langsung). */
+function maintenanceTable(list) {
+  const year = new Date().getFullYear();
+  const rows = list.map((c) => ({ c, s: maintenance.summary(c, year) }));
+  const sum = (f) => rows.reduce((t, r) => t + (r.s[f] || 0), 0);
+  const editable = auth.isAdmin();
+  const statusTone = { Aktif: 'green', Berakhir: 'red', 'Belum mulai': 'gray' };
+  return `
+    <div class="stats stats--sm">
+      ${statCard({ label: 'TCV kontrak maintenance', value: rupiahShort(sum('tcv')), hint: `${rows.filter((r) => r.s.tcv).length} client`, tone: 'blue', icon: '💼' })}
+      ${statCard({ label: `Diakui tahun ${year}`, value: rupiahShort(sum('yearAmount')), hint: `YTD ${rupiahShort(sum('ytd'))}`, tone: 'green', icon: '📈' })}
+      ${statCard({ label: 'Amortisasi / bulan', value: rupiahShort(sum('monthly')), tone: 'purple', icon: '🗓️' })}
+      ${statCard({ label: 'Sisa belum diakui', value: rupiahShort(sum('remaining')), tone: 'amber', icon: '⏳' })}
+    </div>
+    <div class="card card--flush"><div class="table-wrap">
+      <table class="table">
+        <thead><tr>
+          <th>Client</th><th>Periode Kontrak</th><th class="num">Lama</th>
+          <th class="num">Harga Maintenance / tahun (${year})</th><th class="num">Nilai Kontrak (TCV)</th>
+          <th class="num">Amortisasi / bulan</th><th class="num">Diakui ${year}</th><th class="num">YTD</th>
+          <th style="width:12%">Terakui s/d hari ini</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${rows
+            .map(({ c, s }) => `
+            <tr>
+              <td class="nowrap" title="${esc(c.name)}"><span class="badge tone-gray">${esc(c.code)}</span> <b>${esc(c.name)}</b></td>
+              <td class="nowrap">${s.hasContract ? `${dateLabel(s.start)} – ${dateLabel(s.end)}${s.defaultEnd ? ' <small class="muted">(1 th)</small>' : ''}` : '<span class="muted">Tanggal kontrak kosong</span>'}</td>
+              <td class="num nowrap">${s.hasContract ? `${s.months} bln` : '-'}</td>
+              <td class="num"><input class="input input--sm num input--money" data-money data-m="maintenancePrice" data-id="${esc(c.id)}" value="${moneyValue(c.maintenancePrice)}" ${editable ? '' : 'disabled'} /></td>
+              <td class="num"><input class="input input--sm num input--money" data-money data-m="maintenanceTcv" data-id="${esc(c.id)}" value="${moneyValue(c.maintenanceTcv)}" placeholder="${s.tcv ? 'auto ' + Math.round(s.tcv).toLocaleString('id-ID') : 'otomatis'}" ${editable ? '' : 'disabled'} /></td>
+              <td class="num">${s.hasContract ? rupiah(s.monthly) : '-'}</td>
+              <td class="num"><b>${s.hasContract ? rupiah(s.yearAmount) : '-'}</b></td>
+              <td class="num">${s.hasContract ? rupiah(s.ytd) : '-'}</td>
+              <td>${s.hasContract && s.tcv ? `<div class="util">${progressBar(s.progress, 'blue')}<span>${pct(s.progress)}</span></div>` : '-'}</td>
+              <td>${s.hasContract ? badge(s.status, statusTone[s.status]) + (s.status === 'Aktif' && s.daysLeft <= 60 ? ` <small class="text-amber">${s.daysLeft} hari lagi</small>` : '') : '-'}</td>
+              <td class="actions">${editable ? `<button class="btn btn--icon btn--ghost btn--sm" data-edit="${esc(c.id)}" title="Edit kontrak">✏️</button>` : ''}</td>
+            </tr>`)
+            .join('')}
+        </tbody>
+      </table>
+    </div></div>
+    <p class="muted small">TCV kosong = otomatis <i>harga per tahun × lama kontrak (bulan) ÷ 12</i>. Pendapatan diakui merata per hari sepanjang kontrak (amortisasi).
+      Ubah tanggal mulai / akhir kontrak lewat tombol ✏️.</p>
+    ${editable ? '<div class="form-actions"><button class="btn btn--primary" data-save-maint>Simpan perubahan</button></div>' : ''}`;
+}
+
 export default {
   path: '/client',
   title: 'Monitoring Client',
@@ -103,7 +156,22 @@ export default {
         return;
       }
       if (tab === 'overview') body.innerHTML = overview(list);
-      else {
+      else if (tab === 'maintenance') {
+        body.innerHTML = maintenanceTable(list);
+        body.querySelectorAll('[data-money]').forEach(bindMoneyInput);
+        body.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => openClientForm({ id: b.dataset.edit, onSaved: draw })));
+        body.querySelector('[data-save-maint]')?.addEventListener('click', async () => {
+          const patches = new Map();
+          body.querySelectorAll('[data-m]').forEach((inp) => {
+            const value = parseNumber(inp.value);
+            if (Number(clients.get(inp.dataset.id)[inp.dataset.m]) === value) return;
+            patches.set(inp.dataset.id, { ...(patches.get(inp.dataset.id) || {}), [inp.dataset.m]: value });
+          });
+          if (!patches.size) return toast('Tidak ada perubahan');
+          await attempt(() => Promise.all([...patches].map(([id, patch]) => clients.updatePricing(id, patch))), `Maintenance ${patches.size} client disimpan`);
+          draw();
+        });
+      } else {
         const field = tab === 'price' ? 'pricePerMandays' : 'freeMandays';
         body.innerHTML = settingTable(list, field);
         body.querySelectorAll('[data-money]').forEach(bindMoneyInput);
@@ -121,8 +189,8 @@ export default {
     };
 
     el.innerHTML = `
-      ${pageHeader({ title: 'Monitoring Client', subtitle: 'Pemakaian free mandays, waived, harga & project per client', icon: '🏦', actions: auth.isAdmin() ? '<button class="btn btn--primary" data-new>+ Client Baru</button>' : '' })}
-      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays & Waived']], tab)}
+      ${pageHeader({ title: 'Monitoring Client', subtitle: 'Pemakaian free mandays, waived, harga, kontrak maintenance & project per client', icon: '🏦', actions: auth.isAdmin() ? '<button class="btn btn--primary" data-new>+ Client Baru</button>' : '' })}
+      ${tabs([['overview', '📈 Monitoring'], ['price', '💲 Setting Price per Client'], ['free', '🎁 Setting Free Mandays & Waived'], ['maintenance', '💼 Maintenance & Amortisasi']], tab)}
       <div data-body></div>`;
     bindTabs(el, (t) => {
       tab = t;

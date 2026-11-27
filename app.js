@@ -25,12 +25,14 @@ import activityBoard from './program/activity/activity-board.js';
 // 5. Monitoring Client (price & free mandays)
 import clientMonitoring from './program/client/client-monitoring.js';
 import clientDetail from './program/client/client-detail.js';
+// History Trend (grafik close per tahun)
+import trend from './program/trend/trend.js';
 // 6. Reminder email
 import reminder from './program/reminder/reminder.js';
 // 7. Setting
 import settings from './program/settings/settings.js';
 
-const MODULES = [login, dashboard, inquiry, projectList, projectDetail, activityBoard, clientMonitoring, clientDetail, reminder, settings];
+const MODULES = [login, dashboard, inquiry, projectList, projectDetail, activityBoard, clientMonitoring, clientDetail, trend, reminder, settings];
 
 setupShell();
 

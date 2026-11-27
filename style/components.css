@@ -204,3 +204,10 @@ tr[data-open] { cursor: pointer; }
 
 .chips__sep { width: 1px; height: 20px; background: var(--line-2); margin: 0 4px; }
 .chip small { opacity: 0.65; margin-left: 2px; }
+.table tr.is-current td { background: var(--blue-bg); }
+
+/* Tipe tanpa biaya (PRL): isian biaya & BAST disembunyikan */
+.nocost-info { display: none; margin: 0 0 12px; }
+.no-cost .cost-field, .no-cost .bast-field { display: none; }
+.no-cost .nocost-info { display: block; }
+.input--money { width: 140px; min-width: 0; }
