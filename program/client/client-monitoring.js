@@ -7,13 +7,11 @@
  */
 import * as clients from '../../service/client.service.js';
 import * as auth from '../../service/auth.service.js';
-import { esc, pageHeader, tabs, bindTabs, emptyState, progressBar, badge, bindMoneyInput, moneyValue, attempt, confirmDialog, statCard, toast, options } from '../../service/ui.service.js';
+import { esc, pageHeader, tabs, bindTabs, emptyState, progressBar, badge, bindMoneyInput, moneyValue, attempt, confirmDialog, statCard, toast } from '../../service/ui.service.js';
 import { rupiah, rupiahShort, number, md, dateLabel, daysUntil, parseNumber, pct } from '../../service/format.service.js';
 import { openClientForm } from './client-form.js';
 import * as maintenance from '../../service/maintenance.service.js';
-import * as sla from '../../service/sla.service.js';
-import * as master from '../../service/master.service.js';
-import * as projects from '../../service/project.service.js';
+import { renderSlaEditor } from '../sla/sla-setting.js';
 
 const usageTone = (p) => (p >= 100 ? 'red' : p >= 80 ? 'amber' : 'green');
 
@@ -99,39 +97,6 @@ function settingTable(list, field) {
     ${auth.isAdmin() ? `<div class="form-actions"><button class="btn btn--primary" data-save-all>Simpan perubahan</button></div>` : '<p class="muted small">Hanya admin yang dapat mengubah setting client.</p>'}`;
 }
 
-/** 5.4 SLA PRL: SLA solusi sementara & permanen per prioritas, per client. */
-function slaTable(list, clientId) {
-  const c = clients.get(clientId) || list[0];
-  const editable = auth.isAdmin();
-  const t = sla.table(c.id);
-  const custom = c.sla && Object.keys(c.sla).length;
-  const open = projects.list().filter((p) => p.clientId === c.id && sla.applies(p) && !master.isClosed(p.status));
-  const cell = (pr, kind) => `
-    <div class="sla-cell">
-      <input class="input input--sm num" type="number" min="0" step="0.5" data-pr="${esc(pr)}" data-kind="${kind}" data-f="v" value="${esc(t[pr][kind].v)}" ${editable ? '' : 'disabled'} />
-      <select class="input input--sm" data-pr="${esc(pr)}" data-kind="${kind}" data-f="u" ${editable ? '' : 'disabled'}>${options(sla.UNITS, t[pr][kind].u)}</select>
-    </div>`;
-  return `
-    <div class="toolbar">
-      <label class="small muted">Client</label>
-      <select class="input input--sm" data-sla-client>${options(list, c.id, { valueKey: 'id', labelKey: (x) => `${x.code} — ${x.name}` })}</select>
-      <span class="badge tone-${custom ? 'blue' : 'gray'}">${custom ? 'SLA khusus client' : 'Memakai SLA bawaan'}</span>
-      <span class="muted small">${open.length} PRL belum selesai</span>
-    </div>
-    <div class="card card--flush"><table class="table">
-      <thead><tr><th>Prioritas</th><th>⏱️ Solusi Sementara</th><th>✅ Solusi Permanen</th></tr></thead>
-      <tbody>${master.prlPriorities().map((pr) => `<tr><td><b>${esc(pr)}</b></td><td>${cell(pr, 'temp')}</td><td>${cell(pr, 'perm')}</td></tr>`).join('')}</tbody>
-    </table></div>
-    <p class="muted small">Berlaku hanya untuk tipe ${esc(master.slaTypes().join(', '))}. Dihitung dari Waktu Lapor:
-      <b>jam</b> = jam kalender (24/7), <b>hari kerja</b> = Senin–Jumat, <b>hari kalender</b> = semua hari.
-      Timeline (activity) & reminder email otomatis mengikuti batas SLA.</p>
-    ${editable ? `<div class="form-actions">
-      <button class="btn btn--ghost btn--sm mr-auto" data-sla-default>Kembalikan ke SLA bawaan</button>
-      <button class="btn btn--ghost btn--sm" data-sla-all>Terapkan ke semua client</button>
-      <button class="btn btn--primary" data-sla-save>Simpan SLA ${esc(c.code)}</button>
-    </div>` : '<p class="muted small">Hanya admin yang dapat mengubah SLA.</p>'}`;
-}
-
 /** 5.3 Maintenance: harga tahun berjalan, TCV kontrak & amortisasi (bisa diedit langsung). */
 function maintenanceTable(list) {
   const year = new Date().getFullYear();
@@ -194,43 +159,7 @@ export default {
       }
       if (tab === 'overview') body.innerHTML = overview(list);
       else if (tab === 'sla') {
-        slaClient = clients.get(slaClient) ? slaClient : list[0].id;
-        body.innerHTML = slaTable(list, slaClient);
-        body.querySelector('[data-sla-client]').addEventListener('change', (e) => ((slaClient = e.target.value), draw()));
-        const read = () => {
-          const out = {};
-          master.prlPriorities().forEach((pr) => {
-            out[pr] = {};
-            ['temp', 'perm'].forEach((k) => {
-              const q = (f) => body.querySelector(`[data-pr="${CSS.escape(pr)}"][data-kind="${k}"][data-f="${f}"]`).value;
-              out[pr][k] = { v: Number(q('v')) || 0, u: q('u') };
-            });
-          });
-          return out;
-        };
-        const saveFor = async (ids, value) => {
-          await Promise.all(ids.map((id) => clients.updatePricing(id, { sla: value })));
-          let n = 0;
-          for (const id of ids) n += await projects.recalcSla(id);
-          return n;
-        };
-        body.querySelector('[data-sla-save]')?.addEventListener('click', async () => {
-          const n = await attempt(() => saveFor([slaClient], read()));
-          if (n !== undefined) toast(`SLA disimpan · ${n} PRL dihitung ulang`);
-          draw();
-        });
-        body.querySelector('[data-sla-all]')?.addEventListener('click', async () => {
-          if (!(await confirmDialog(`Terapkan tabel SLA ini ke semua ${list.length} client? SLA client lain akan ditimpa.`))) return;
-          const n = await attempt(() => saveFor(list.map((c) => c.id), read()));
-          if (n !== undefined) toast(`SLA diterapkan ke ${list.length} client · ${n} PRL dihitung ulang`);
-          draw();
-        });
-        body.querySelector('[data-sla-default]')?.addEventListener('click', async () => {
-          if (!(await confirmDialog('Kembalikan SLA client ini ke SLA bawaan?'))) return;
-          const n = await attempt(() => saveFor([slaClient], {}));
-          if (n !== undefined) toast(`SLA bawaan dipakai · ${n} PRL dihitung ulang`);
-          draw();
-        });
+        renderSlaEditor(body, { clientId: slaClient, onClient: (id) => (slaClient = id) });
       } else if (tab === 'maintenance') {
         body.innerHTML = maintenanceTable(list);
         body.querySelectorAll('[data-money]').forEach(bindMoneyInput);
