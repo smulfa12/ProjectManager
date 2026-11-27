@@ -73,7 +73,11 @@ export default {
           <ul class="member-load">
             ${handlers.map((h) => `<li>${members.avatar(h, 30)}<div class="grow"><b>${esc(h.name)}</b><div class="muted small">${esc(h.position || h.team || '')} · ${esc(h.email || '-')}</div></div></li>`).join('') || '<li class="muted small">Belum ada user.</li>'}
           </ul>
-          ${c.pic || c.notes ? `<p class="small"><b>PIC Client:</b> ${esc(c.pic || '-')}<br>${esc(c.notes || '')}</p>` : ''}
+          <h3 class="mt">👤 PIC Bank</h3>
+          ${clients.pics(c.id).length
+            ? `<ul class="member-load">${clients.pics(c.id).map((x) => `<li><span class="avatar" style="--size:30px;--hue:200">${esc(x.name.slice(0, 1).toUpperCase())}</span><div class="grow"><b>${esc(x.name)}</b><div class="muted small">${esc([x.position, x.email, x.phone].filter(Boolean).join(' · ') || '-')}</div></div></li>`).join('')}</ul>`
+            : `<p class="muted small">Belum ada PIC Bank${auth.isAdmin() ? ' — tambahkan lewat ✏️ Edit' : ''}.</p>`}
+          ${c.notes ? `<p class="small">${esc(c.notes)}</p>` : ''}
         </section>
       </div>
 

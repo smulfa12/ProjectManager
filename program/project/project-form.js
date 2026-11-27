@@ -24,11 +24,11 @@ const toLocalInput = (iso) => {
 const fromLocalInput = (v) => (v ? new Date(v).toISOString() : '');
 const dt = (name, v) => `<input class="input" type="datetime-local" name="${name}" value="${esc(toLocalInput(v))}" />`;
 
-/** Pilihan PIC Bank: PIC yang pernah dipakai di client ini + PIC client. */
+/** Pilihan PIC Bank: daftar PIC Bank client (Edit Client) lalu PIC yang pernah dipakai di project client ini. */
 function picBankChoices(clientId) {
-  const list = projects.list().filter((x) => x.clientId === clientId).map((x) => x.picBank);
-  list.push(clients.get(clientId)?.pic);
-  return [...new Set(list.filter(Boolean).map((s) => s.trim()))].sort();
+  const registered = clients.pics(clientId).map((x) => x.name);
+  const used = projects.list().filter((x) => x.clientId === clientId).map((x) => (x.picBank || '').trim()).filter(Boolean).sort();
+  return [...new Set([...registered, ...used])];
 }
 
 /** Pilihan PIC MLPT: member aktif yang meng-handle client ini (+ nilai lama bila tidak terdaftar). */

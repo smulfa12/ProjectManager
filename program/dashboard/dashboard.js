@@ -11,7 +11,7 @@ import * as auth from '../../service/auth.service.js';
 import { loadDemo } from '../../service/demo.service.js';
 import * as followup from '../../service/followup.service.js';
 import { esc, pageHeader, periodFilter, statCard, barList, options, emptyState, progressBar, attempt, badge } from '../../service/ui.service.js';
-import { number, md, rupiahShort, pct, dateLabel } from '../../service/format.service.js';
+import { number, md, rupiahShort, pct, dateLabel, today } from '../../service/format.service.js';
 
 const FU_LIMIT = 8;
 
@@ -39,13 +39,14 @@ function followupCard() {
       </div>
       ${items.length
         ? `<div class="table-wrap"><table class="table table--compact table--hover fu-table">
-            <thead><tr><th></th><th>Pekerjaan</th><th>Client</th><th>Status</th><th>Perlu follow up</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Pekerjaan</th><th>Client</th><th>Target</th><th>Status</th><th>Perlu follow up</th><th></th></tr></thead>
             <tbody>${shown
               .map(
                 (i) => `<tr>
                 <td><span class="dot tone-${i.severity <= 1 ? 'red' : i.severity <= 2 ? 'amber' : 'gray'}"></span></td>
                 <td><b>${esc(i.code)}</b>${i.jira ? ` <small class="muted">${esc(i.jira)}</small>` : ''}${i.kind === 'activity' ? ' <small class="badge tone-teal">activity</small>' : ''}<div class="fu-title">${esc(i.title)}</div></td>
                 <td class="small">${esc(i.client)}</td>
+                <td class="small nowrap ${i.target && i.target < today() ? 'text-red' : ''}">${i.target ? dateLabel(i.target) : '<span class="muted">-</span>'}</td>
                 <td class="small nowrap">${esc(i.status || '')}</td>
                 <td>${i.reasons.map((r) => badge(r.text, r.tone)).join(' ')}</td>
                 <td class="actions"><a class="btn btn--ghost btn--sm" href="${esc(i.href)}">Buka</a></td>

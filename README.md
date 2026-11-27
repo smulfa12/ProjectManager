@@ -43,7 +43,7 @@ PIC Bank, PIC MLPT, Start, Target, Selesai Aktual, Status, Remark, Notes.
 
 ### Data Client
 Client ID, Nama Client, Free Mandays, Tanggal Kontrak, Periode Preventive Maintenance (mulai–selesai + frekuensi),
-Price per Mandays, PIC, catatan, **Akhir Kontrak, Harga Maintenance / tahun, Nilai Kontrak Maintenance (TCV)**. Free mandays terpakai = total mandays project **Free Mandays** di dalam periode PM.
+Price per Mandays, **daftar PIC Bank** (nama, jabatan, email, HP — dipakai sebagai pilihan PIC Bank di project), catatan, **Akhir Kontrak, Harga Maintenance / tahun, Nilai Kontrak Maintenance (TCV)**. Free mandays terpakai = total mandays tiket **Free Mandays** dalam **jangka waktu kontrak** (Tanggal → Akhir Kontrak; bila kosong: periode PM / tahun kontrak). Mandays langsung terpotong sejak tiket dicatat walau belum selesai, **kecuali tiket Cancel**.
 
 ## 🗂️ Struktur Folder (modular)
 

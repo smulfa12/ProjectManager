@@ -19,7 +19,7 @@ export const TABLES = {
   },
   clients: {
     table: 'pm_clients',
-    columns: ['id', 'code', 'name', 'freeMandays', 'contractDate', 'contractEnd', 'maintenancePrice', 'maintenanceTcv', 'sla', 'pmStart', 'pmEnd', 'pmFrequency', 'pricePerMandays', 'pic', 'notes', 'active', 'createdAt', 'updatedAt'],
+    columns: ['id', 'code', 'name', 'freeMandays', 'contractDate', 'contractEnd', 'maintenancePrice', 'maintenanceTcv', 'sla', 'picList', 'pmStart', 'pmEnd', 'pmFrequency', 'pricePerMandays', 'pic', 'notes', 'active', 'createdAt', 'updatedAt'],
   },
   projects: {
     table: 'pm_projects',
@@ -51,7 +51,7 @@ export const isConfigured = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const snake = (s) => s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase());
 
 /** Nilai pengganti NULL untuk kolom non-teks. */
-const EMPTY = { clientIds: [], members: [], changes: [], reminder: true, active: true, mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, freeMandays: 0, pricePerMandays: 0, maintenancePrice: 0, maintenanceTcv: 0, sla: {}, progress: 0, planHours: 0, dailyHours: 8 };
+const EMPTY = { clientIds: [], members: [], changes: [], reminder: true, active: true, mandays: 0, priceTcv: 0, revenue: 0, grossProfit: 0, freeMandays: 0, pricePerMandays: 0, maintenancePrice: 0, maintenanceTcv: 0, sla: {}, picList: [], progress: 0, planHours: 0, dailyHours: 8 };
 
 export function toRow(key, obj) {
   const out = {};
