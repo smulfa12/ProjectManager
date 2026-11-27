@@ -7,15 +7,15 @@
  *   - lewat target / target ≤ 7 hari lagi
  *   - status menunggu pihak lain (Waiting / Submitted / Pending) → perlu FU ke bank
  *   - belum ada update ≥ 7 hari
- * Activity milik member yang sudah di To Do / In Progress / Review (BUKAN Backlog): semua tampil,
- *   urut dari terlambat → target hari ini → target ≤ 3 hari → lainnya.
+ * Activity milik member yang sudah di To Do / In Progress / Review (BUKAN Backlog) dengan target
+ *   terlambat, hari ini, atau hari kerja berikutnya.
  */
 import * as projects from './project.service.js';
 import * as activities from './activity.service.js';
 import * as clients from './client.service.js';
 import * as master from './master.service.js';
 import * as sla from './sla.service.js';
-import { today, diffDays, dateLabel } from './format.service.js';
+import { today, diffDays, dateLabel, addDays, nextWorkday, dayName } from './format.service.js';
 
 const STALE_DAYS = 7;
 const SOON_DAYS = 7;
@@ -68,6 +68,9 @@ export function forMember(m) {
         out.push({ kind: 'project', id: p.id, href: `#/project/detail?id=${p.id}&tab=history`, code: p.code, jira: p.jiraNo, target: p.target, title: p.title || p.outstanding || '-', client: clients.nameOf(p.clientId), status: p.status, reasons, severity: sev });
     });
 
+  // hari kerja berikutnya (Jumat → Senin)
+  const nextDay = nextWorkday(addDays(t, 1));
+  const nextLabel = diffDays(t, nextDay) === 1 ? 'besok' : `${dayName(nextDay)} ${dateLabel(nextDay)}`;
   activities
     .list()
     // hanya activity yang sudah masuk antrian kerja (bukan Backlog); SLA sudah tercakup di baris project
@@ -76,18 +79,15 @@ export function forMember(m) {
       const d = a.planEnd ? diffDays(t, a.planEnd) : null;
       const p = projects.get(a.projectId);
       const base = { kind: 'activity', id: a.id, href: '#/activity?view=table', code: p?.code || 'Internal', jira: p?.jiraNo || '', target: a.planEnd, title: a.title, client: p ? clients.nameOf(p.clientId) : '-', status: master.activityStatus(a.status).label };
-      // semua activity To Do / In Progress / Review masuk daftar; urgensi dari targetnya
+      // hanya target yang sudah lewat, hari ini, atau hari kerja berikutnya
+      if (d === null || a.planEnd > nextDay) return;
       const started = a.status !== 'todo';
-      const stateText = started ? master.activityStatus(a.status).label : a.planStart && a.planStart > t ? `To Do — mulai ${dateLabel(a.planStart)}` : 'To Do — belum dimulai';
       const reasons = [];
-      let sev = 5;
-      if (d === null) reasons.push({ text: 'Target activity belum diisi', tone: 'gray' });
-      else if (d < 0) (reasons.push({ text: `Activity terlambat ${-d} hari`, tone: 'red' }), (sev = 1));
+      let sev;
+      if (d < 0) (reasons.push({ text: `Activity terlambat ${-d} hari`, tone: 'red' }), (sev = 1));
       else if (d === 0) (reasons.push({ text: 'Activity target hari ini', tone: 'amber' }), (sev = 2));
-      else if (d <= 3) (reasons.push({ text: `Activity target ${d} hari lagi`, tone: 'amber' }), (sev = 3));
-      else reasons.push({ text: `Target ${d} hari lagi`, tone: 'blue' });
-      if (!started && a.planStart && a.planStart < t && sev > 2) (reasons.push({ text: 'Seharusnya sudah mulai', tone: 'amber' }), (sev = Math.min(sev, 3)));
-      reasons.push({ text: stateText, tone: started ? 'teal' : 'gray' });
+      else (reasons.push({ text: `Activity target ${nextLabel}`, tone: 'blue' }), (sev = 3));
+      reasons.push({ text: started ? master.activityStatus(a.status).label : 'To Do — belum dimulai', tone: started ? 'teal' : 'gray' });
       out.push({ ...base, reasons, severity: sev });
     });
 
