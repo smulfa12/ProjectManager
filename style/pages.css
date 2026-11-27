@@ -159,3 +159,4 @@
 .meeting-pic { width: 150px; min-width: 0; }
 .meeting-target { width: 140px; min-width: 0; }
 .meeting-target.is-late { color: var(--red); border-color: var(--red); }
+.meeting-target:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }

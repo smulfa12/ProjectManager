@@ -32,6 +32,8 @@ export default {
     const pics = [...new Set(projects.list().map((p) => p.picMlpt).filter(Boolean))].sort();
     // pilihan PIC MLPT saat mengganti: PIC yang sudah ada + nama user tim
     const picChoices = [...new Set([...pics, ...members.visible().map((m) => m.name)])].sort();
+    const targetTitle = (status, late) =>
+      master.canSetTarget(status) ? (late ? 'Lewat target' : 'Target') : `Target hanya bisa diubah saat status: ${master.targetStatuses().join(', ')}`;
     const isLate = (target, status) => Boolean(target) && !master.isClosed(status) && target < today();
 
     el.innerHTML = `
@@ -107,7 +109,7 @@ export default {
                     <td class="nowrap"><a href="#/project/detail?id=${esc(p.id)}&tab=history" target="_blank" rel="noopener">${esc(p.code)}</a><br><small class="muted">${jiraLink(p)} · ${esc(p.type || '-')}</small></td>
                     <td><span class="clamp">${esc(p.title || p.outstanding || '-')}</span></td>
                     <td><input class="input input--sm meeting-pic" data-pic list="pm-meeting-pics" value="${esc(p.picMlpt || '')}" placeholder="PIC MLPT" /></td>
-                    <td><input class="input input--sm meeting-target ${late ? 'is-late' : ''}" type="date" data-target value="${esc(p.target || '')}" title="${late ? 'Lewat target' : 'Target'}" /></td>
+                    <td><input class="input input--sm meeting-target ${late ? 'is-late' : ''}" type="date" data-target value="${esc(p.target || '')}" ${master.canSetTarget(p.status) ? '' : 'disabled'} title="${targetTitle(p.status, late)}" /></td>
                     <td data-last>${lastCell(p)}</td>
                     <td><select class="input input--sm" data-status>${options(master.statusNames(), p.status)}</select></td>
                     <td><textarea class="input meeting-note" rows="1" data-note placeholder="Ketik update…" title="Enter = simpan & lanjut · Shift+Enter = baris baru"></textarea></td>
@@ -142,7 +144,15 @@ export default {
         const mark = () => {
           const tr = inp.closest('tr');
           const p = projects.get(tr.dataset.pid);
-          if (inp.dataset.target !== undefined) inp.classList.toggle('is-late', isLate(inp.value, tr.querySelector('[data-status]').value));
+          const status = tr.querySelector('[data-status]').value;
+          const target = tr.querySelector('[data-target]');
+          // ganti status → Target aktif hanya untuk status tertentu (nilai dikembalikan bila dikunci)
+          if (inp.dataset.status !== undefined) {
+            target.disabled = !master.canSetTarget(status);
+            if (target.disabled) target.value = p.target || '';
+            target.title = targetTitle(status, isLate(target.value, status));
+          }
+          target.classList.toggle('is-late', isLate(target.value, status));
           tr.classList.toggle('is-dirty', changes(tr, p).length > 0 || Boolean(tr.querySelector('[data-note]').value.trim()));
         };
         inp.addEventListener('change', mark);
@@ -162,8 +172,9 @@ export default {
       const now = {
         status: tr.querySelector('[data-status]').value,
         picMlpt: tr.querySelector('[data-pic]').value.trim(),
-        target: tr.querySelector('[data-target]').value,
       };
+      const target = tr.querySelector('[data-target]');
+      if (!target.disabled) now.target = target.value; // target terkunci tidak ikut disimpan
       return Object.keys(now).filter((k) => String(p[k] || '') !== now[k]).map((k) => [k, now[k]]);
     }
 
@@ -184,7 +195,9 @@ export default {
         tr.classList.remove('is-dirty');
         const fresh = projects.get(p.id);
         tr.querySelector('[data-last]').innerHTML = lastCell(fresh);
-        tr.querySelector('[data-target]').classList.toggle('is-late', isLate(fresh.target, fresh.status));
+        const t = tr.querySelector('[data-target]');
+        t.disabled = !master.canSetTarget(fresh.status);
+        t.classList.toggle('is-late', isLate(fresh.target, fresh.status));
         if (note || updatedOn(p.id, f.date)) {
           tr.classList.add('is-done');
           flag.innerHTML = badge('✓ diupdate', 'green');

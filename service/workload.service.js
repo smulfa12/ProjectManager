@@ -8,6 +8,7 @@ import * as activities from './activity.service.js';
 import * as members from './member.service.js';
 import * as clients from './client.service.js';
 import * as master from './master.service.js';
+import * as maintenance from './maintenance.service.js';
 import { inRange, today, addDays } from './format.service.js';
 
 const projectDate = (p) => p.date || p.createdAt?.slice(0, 10) || '';
@@ -29,6 +30,17 @@ export function build({ from, to, clientId = '', type = '', team = '' }) {
   const acts = activities.list().filter((a) => (a.projectId ? projectIds.has(a.projectId) : !clientId && !type));
 
   const byClient = group(rows, (p) => p.clientId, (k) => clients.nameOf(k));
+
+  // Maintenance fee: pengakuan (amortisasi) kontrak maintenance dalam periode filter.
+  // Tidak dihitung bila filter tipe tiket aktif (maintenance bukan tiket).
+  const maintRange = { from: from || '0000-01-01', to: to || '9999-12-31' };
+  const maintByClient = new Map(
+    type ? [] : clients.list().filter((c) => !clientId || c.id === clientId).map((c) => [c.id, maintenance.recognized(c, maintRange)]).filter(([, v]) => v > 0)
+  );
+  maintByClient.forEach((_, id) => {
+    if (!byClient.some((g) => g.key === id)) byClient.push({ key: id, label: clients.nameOf(id), rows: [], ...projects.summary([]) });
+  });
+  byClient.forEach((g) => (g.maintenance = maintByClient.get(g.key) || 0));
   const byType = group(rows, (p) => p.type, (k) => k);
   const byStatus = master.statuses().map((s) => ({ ...s, count: rows.filter((p) => p.status === s.name).length }));
 
@@ -78,7 +90,12 @@ export function build({ from, to, clientId = '', type = '', team = '' }) {
 
   return {
     rows,
-    summary: projects.summary(rows),
+    summary: (() => {
+      const s = projects.summary(rows);
+      const fee = [...maintByClient.values()].reduce((a, b) => a + b, 0);
+      // TCV, Revenue & GP total = project + maintenance fee (maintenance tanpa biaya mandays)
+      return { ...s, projectTcv: s.priceTcv, projectRevenue: s.revenue, projectGp: s.grossProfit, maintenance: fee, priceTcv: s.priceTcv + fee, revenue: s.revenue + fee, grossProfit: s.grossProfit + fee };
+    })(),
     activities: {
       total: acts.length,
       open: acts.filter((a) => a.status !== 'done').length,
