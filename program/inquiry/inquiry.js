@@ -40,7 +40,6 @@ function apply(f) {
     if (f.bast === 'yes' && !(p.bast || p.bastDate)) return false;
     if (f.bast === 'no' && (p.bast || p.bastDate)) return false;
     if (f.flag === 'overdue' && !(p.target && p.target < t && !master.isClosed(p.status))) return false;
-    if (f.flag === 'outstanding' && !p.outstanding) return false;
     return true;
   });
 }
@@ -70,7 +69,7 @@ export default {
           <label class="field"><span>Target dari</span><input class="input" type="date" name="targetFrom" value="${esc(f.targetFrom)}" /></label>
           <label class="field"><span>Target s/d</span><input class="input" type="date" name="targetTo" value="${esc(f.targetTo)}" /></label>
           <label class="field"><span>BAST</span><select class="input" name="bast">${options([{ v: 'yes', l: 'Sudah BAST' }, { v: 'no', l: 'Belum BAST' }], f.bast, { valueKey: 'v', labelKey: 'l', empty: 'Semua' })}</select></label>
-          <label class="field"><span>Khusus</span><select class="input" name="flag">${options([{ v: 'overdue', l: 'Lewat target' }, { v: 'outstanding', l: 'Ada outstanding' }], f.flag, { valueKey: 'v', labelKey: 'l', empty: '-' })}</select></label>
+          <label class="field"><span>Khusus</span><select class="input" name="flag">${options([{ v: 'overdue', l: 'Lewat target' }], f.flag, { valueKey: 'v', labelKey: 'l', empty: '-' })}</select></label>
           <div class="field span-3 filter-actions"><button type="button" class="btn btn--ghost btn--sm" data-reset>Reset filter</button></div>
         </div>
       </form>

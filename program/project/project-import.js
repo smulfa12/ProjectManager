@@ -21,7 +21,7 @@ export function openProjectImport({ onDone } = {}) {
         <p class="muted small">• Kolom dikenali dari judulnya (urutan bebas; kolom yang tidak ada di file tidak diubah).<br>
           • <b>ID Project</b> yang sudah ada → project diperbarui. ID kosong / baru → project baru (ID otomatis bila kosong).<br>
           • Client diisi nama atau kode client. Kolom info seperti Link Jira, SLA, Lewat Target diabaikan.<br>
-          • Format tracker lama (Bank, PID, Project Outstanding, Cost/FreeMandays, …) juga bisa.</p>
+          • Format tracker lama (Bank, PID, Project Outstanding = Nama Project, Cost/FreeMandays, …) juga bisa.</p>
         <button type="button" class="btn btn--ghost btn--sm" data-template>⬇ Download template (format export, tanpa data)</button>
       </div>
       <div data-preview></div>`,

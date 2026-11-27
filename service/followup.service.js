@@ -32,7 +32,7 @@ function daysSinceUpdate(p) {
 
 /**
  * Item follow up: { kind, id, href, code, title, client, reasons:[{text, tone}], severity }
- * severity kecil = lebih mendesak.
+ * Diurutkan menurut tanggal target (paling terlambat dulu); severity kecil = lebih mendesak.
  */
 export function forMember(m) {
   if (!m) return [];
@@ -91,5 +91,6 @@ export function forMember(m) {
       out.push({ ...base, reasons, severity: sev });
     });
 
-  return out.sort((a, b) => a.severity - b.severity || a.client.localeCompare(b.client) || a.code.localeCompare(b.code));
+  // urut tanggal target: paling terlambat → paling akan datang; tanpa target di akhir
+  return out.sort((a, b) => (a.target || '9999').localeCompare(b.target || '9999') || a.severity - b.severity || a.code.localeCompare(b.code));
 }

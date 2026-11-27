@@ -1,7 +1,7 @@
 /**
  * Import Service — import project dari Excel / CSV dengan format export project
  * (List Project / Inquiry "Export Excel", sheet "Project & CR" / "PRL" dari menu Laporan,
- * maupun format tracker lama: Bank, PID, Project Outstanding, Cost/FreeMandays, ...).
+ * maupun format tracker lama: Bank, PID, Project Outstanding (= Nama Project), Cost/FreeMandays, ...).
  *
  *  - Kolom dikenali dari judul kolomnya; urutan bebas, kolom tak dikenal diabaikan.
  *  - ID Project sudah ada → project DIPERBARUI (hanya kolom yang ada di file).
@@ -19,13 +19,12 @@ import { parseNumber, toISODate } from './format.service.js';
 const ALIASES = {
   code: ['id project', 'uniq id project', 'uniq id'],
   systemId: ['project id sistem', 'pid'],
-  title: ['nama project', 'nama prl', 'judul'],
+  title: ['nama project', 'nama prl', 'judul', 'project outstanding'],
   type: ['tipe'],
   clientId: ['client', 'bank', 'nama client'],
   jiraNo: ['no jira', 'jira'],
   module: ['modul'],
   crNo: ['no cr client', 'no cr brks', 'no cr'],
-  outstanding: ['project outstanding'],
   date: ['date', 'tanggal'],
   costType: ['cost/free mandays', 'cost/freemandays'],
   mandays: ['mandays'],
@@ -149,11 +148,12 @@ export async function parse(file) {
           if (String(raw ?? '').trim() === '') return; // sel kosong = tidak diisi
           input[f] = typeof raw === 'number' ? raw : parseNumber(raw);
         } else {
-          input[f] = String(raw ?? '').trim();
+          const v = String(raw ?? '').trim();
+          // "Nama Project" & "Project Outstanding" (file lama) sama-sama → Nama Project: yang pertama terisi dipakai
+          if (f === 'title' && input.title) return;
+          input[f] = v;
         }
       });
-      // format tracker lama: Project Outstanding = nama project
-      if (!input.title && input.outstanding && !head.some((h) => ['nama project', 'nama prl'].includes(norm(h)))) input.title = input.outstanding;
       if (input.status && /^closed$/i.test(input.status)) input.status = master.statusNames().find((s) => /^closed$/i.test(s)) || input.status;
 
       const existing = input.code ? projects.list().find((p) => norm(p.code) === norm(input.code)) || null : null;
